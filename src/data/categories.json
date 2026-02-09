@@ -1,0 +1,14 @@
+[
+  { "id": "workshop-tools", "name": "Workshop Tools", "slug": "workshop-tools", "productCount": 4, "image": "/images/categories/workshop.jpg" },
+  { "id": "tools-for-plumbers", "name": "Tools For Plumbers", "slug": "tools-for-plumbers", "productCount": 3, "image": "/images/categories/plumbers.jpg" },
+  { "id": "tools-for-electricians", "name": "Tools For Electricians", "slug": "tools-for-electricians", "productCount": 3, "image": "/images/categories/electricians.jpg" },
+  { "id": "power-tools", "name": "Power Tools", "slug": "power-tools", "productCount": 3, "image": "/images/categories/power-tools.jpg" },
+  { "id": "power-tool-accessories", "name": "Power Tool Accessories", "slug": "power-tool-accessories", "productCount": 3, "image": "/images/categories/accessories.jpg" },
+  { "id": "tool-storage", "name": "Tool Storage", "slug": "tool-storage", "productCount": 3, "image": "/images/categories/storage.jpg" },
+  { "id": "pneumatic-tools", "name": "Pneumatic Tools", "slug": "pneumatic-tools", "productCount": 3, "image": "/images/categories/pneumatic.jpg" },
+  { "id": "mechanical-tools", "name": "Mechanical Tools", "slug": "mechanical-tools", "productCount": 3, "image": "/images/categories/mechanical.jpg" },
+  { "id": "measuring-tools", "name": "Measuring Tools", "slug": "measuring-tools", "productCount": 3, "image": "/images/categories/measuring.jpg" },
+  { "id": "joining-tools", "name": "Joining Tools", "slug": "joining-tools", "productCount": 3, "image": "/images/categories/joining.jpg" },
+  { "id": "building-tools", "name": "Building Tools", "slug": "building-tools", "productCount": 3, "image": "/images/categories/building.jpg" },
+  { "id": "automotive-tools", "name": "Automotive Tools", "slug": "automotive-tools", "productCount": 3, "image": "/images/categories/automotive.jpg" }
+]

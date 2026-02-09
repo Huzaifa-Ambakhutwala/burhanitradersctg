@@ -1,0 +1,30 @@
+{
+  "name": "Burhani Traders",
+  "tagline": "Tools for Professionals & DIYers",
+  "phone": "+880 1843-860751",
+  "email": "Burhanitradersctg@gmail.com",
+  "address": "Taj Machinery Market, 334 Jubilee Rd, Chittagong, Bangladesh",
+  "whatsapp": "8801843860751",
+  "social": {
+    "facebook": "https://facebook.com",
+    "instagram": "https://instagram.com",
+    "youtube": "https://youtube.com",
+    "linkedin": "https://linkedin.com"
+  },
+  "about": {
+    "intro": "Burhani Traders is a Chittagong-based enterprise established to bring proven industry expertise to the local and regional markets. We supply quality tools and hardware for professionals and DIYers.",
+    "intro2": "Built on principles of quality, reliability, and long-term partnerships, we are your trusted partner for power tools, measuring tools, and workshop equipment.",
+    "whyUs": [
+      "Years of experience in tools and hardware",
+      "Delivering across Chittagong and Bangladesh",
+      "Local and imported solutions",
+      "Trusted brands and competitive pricing",
+      "We work on trust and long-term association"
+    ],
+    "vision": "At Burhani Traders, our vision goes beyond trade. We see ourselves as long-term partners in progress—delivering tools that are trusted, precision-driven, and built to last."
+  },
+  "ctaBanner": {
+    "headline": "Powering Workshops, Contractors & Industries",
+    "subline": "From everyday tools to heavy-duty equipment — we deliver quality, value and reliability."
+  }
+}
