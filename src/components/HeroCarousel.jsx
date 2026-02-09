@@ -33,7 +33,7 @@ export default function HeroCarousel() {
 
   return (
     <section className="relative overflow-hidden" aria-label="Hero carousel">
-      <div className="relative h-[60vh] min-h-[320px] max-h-[520px]">
+      <div className="relative h-[50vh] min-h-[280px] sm:min-h-[320px] md:h-[60vh] max-h-[520px]">
         {slides.map((slide, i) => (
           <div
             key={i}
@@ -45,16 +45,16 @@ export default function HeroCarousel() {
             }}
             aria-hidden={i !== current}
           >
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold max-w-2xl">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4 sm:px-6">
+              <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold max-w-2xl leading-tight">
                 {slide.title}
               </h1>
-              <p className="mt-4 text-lg md:text-xl text-white/90 max-w-xl">
+              <p className="mt-3 sm:mt-4 text-sm sm:text-base md:text-xl text-white/90 max-w-xl px-1">
                 {slide.subtitle}
               </p>
               <Link
                 to="/products"
-                className="mt-6 inline-flex items-center gap-2 bg-white text-primary-dark px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                className="mt-4 sm:mt-6 inline-flex items-center gap-2 bg-white text-primary-dark px-5 py-3 sm:px-6 sm:py-3 rounded-lg font-semibold hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[48px] items-center"
               >
                 {slide.cta}
                 <ChevronRight className="w-5 h-5" />
@@ -66,7 +66,7 @@ export default function HeroCarousel() {
         <button
           type="button"
           onClick={() => setCurrent((c) => (c - 1 + slides.length) % slides.length)}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+          className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 p-3 sm:p-2 rounded-full bg-black/30 text-white hover:bg-black/50 active:bg-black/60 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Previous slide"
         >
           <ChevronLeft className="w-6 h-6" />
@@ -74,13 +74,13 @@ export default function HeroCarousel() {
         <button
           type="button"
           onClick={() => setCurrent((c) => (c + 1) % slides.length)}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 p-3 sm:p-2 rounded-full bg-black/30 text-white hover:bg-black/50 active:bg-black/60 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Next slide"
         >
           <ChevronRight className="w-6 h-6" />
         </button>
 
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-2" role="tablist" aria-label="Carousel dots">
+        <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-2" role="tablist" aria-label="Carousel dots">
           {slides.map((_, i) => (
             <button
               key={i}
@@ -89,7 +89,7 @@ export default function HeroCarousel() {
               aria-selected={i === current}
               aria-label={`Go to slide ${i + 1}`}
               onClick={() => setCurrent(i)}
-              className={`w-2.5 h-2.5 rounded-full transition-colors ${i === current ? 'bg-white scale-110' : 'bg-white/50 hover:bg-white/80'}`}
+              className={`w-3 h-3 sm:w-2.5 sm:h-2.5 rounded-full transition-colors flex-shrink-0 ${i === current ? 'bg-white scale-110' : 'bg-white/50 hover:bg-white/80 active:bg-white/90'}`}
             />
           ))}
         </div>

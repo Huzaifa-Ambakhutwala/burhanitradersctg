@@ -1,1 +1,12 @@
-["Premium", "ProTool", "BuildRight", "MeasureMax", "PowerDrive", "MechPro", "PneumaticPlus", "StoragePro", "AutoTech", "JoinRight", "ElectricPro"]
+[
+  {"id":"bosch","name":"Bosch","logo":"/images/brands/bosch.svg"},
+  {"id":"dewalt","name":"DeWalt","logo":"/images/brands/dewalt.png"},
+  {"id":"makita","name":"Makita","logo":"/images/brands/makita.png"},
+  {"id":"yato","name":"Yato","logo":"/images/brands/yato.png"},
+  {"id":"stanley","name":"Stanley","logo":"/images/brands/stanley.png"},
+  {"id":"ken-power-tools","name":"Ken Power Tools","logo":"/images/brands/ken.png"},
+  {"id":"skc-japan","name":"SKC Japan Taps","logo":"/images/brands/skc.png"},
+  {"id":"udyogi","name":"Udyogi","logo":"/images/brands/udyogi.png"},
+  {"id":"work-pro","name":"Work Pro","logo":"/images/brands/workpro.png"},
+  {"id":"molykote","name":"Molykote Grease","logo":"/images/brands/molykote.png"}
+]

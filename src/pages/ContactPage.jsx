@@ -43,11 +43,11 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="grid md:grid-cols-2 gap-12">
+    <div className="min-h-screen bg-gray-50 py-8 sm:py-12">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">Contact Details</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Contact Details</h1>
             <ul className="space-y-6">
               <li className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -79,9 +79,9 @@ export default function ContactPage() {
             </ul>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Find the Right Tools</h2>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Find the Right Tools</h2>
+            <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">
               Looking for reliable hardware tools and fittings? Send us your enquiry and our team will get back to you.
             </p>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -125,7 +125,7 @@ export default function ContactPage() {
               <button
                 type="submit"
                 disabled={status === 'sending'}
-                className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark disabled:opacity-70 transition-colors"
+                className="w-full bg-primary text-white py-3.5 rounded-lg font-semibold hover:bg-primary-dark active:bg-primary-dark disabled:opacity-70 transition-colors min-h-[48px]"
               >
                 {status === 'sending' ? 'Sending...' : 'Submit'}
               </button>

@@ -18,7 +18,8 @@ export default function ScrollToTop() {
     <button
       type="button"
       onClick={scrollToTop}
-      className="fixed bottom-24 right-6 z-50 p-2 rounded-full bg-gray-800 text-white shadow-lg hover:bg-gray-700 focus:ring-4 focus:ring-gray-600 transition-all"
+      className="fixed z-50 p-3 rounded-full bg-gray-800 text-white shadow-lg hover:bg-gray-700 active:bg-gray-600 focus:ring-4 focus:ring-gray-600 transition-all min-w-[48px] min-h-[48px] flex items-center justify-center"
+      style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))', right: 'max(1rem, env(safe-area-inset-right))' }}
       aria-label="Scroll to top"
     >
       <ChevronUp className="w-5 h-5" />

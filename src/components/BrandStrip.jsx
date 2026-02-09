@@ -7,18 +7,12 @@ import {
 import brandsData from '../data/brands.json'
 
 export default function BrandStrip() {
-  // Convert brand names to logo-like items for the carousel
-  const brandItems = brandsData.map((name, index) => ({
-    id: `brand-${index}`,
-    name: name,
-  }))
-
   return (
-    <section className="py-8 bg-gray-50 border-y border-gray-200" aria-label="Trusted brands">
-      <div className="max-w-7xl mx-auto px-4">
+    <section className="py-6 sm:py-8 bg-gray-50 border-y border-gray-200" aria-label="Trusted brands">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="relative flex items-center justify-center">
           <Carousel
-            opts={{ 
+            opts={{
               loop: true,
               align: "start",
               dragFree: true,
@@ -26,7 +20,7 @@ export default function BrandStrip() {
             plugins={[
               AutoScroll({
                 playOnInit: true,
-                speed: 0.5,
+                speed: 1,
                 stopOnInteraction: false,
                 stopOnMouseEnter: false,
                 stopOnFocusIn: false,
@@ -35,28 +29,24 @@ export default function BrandStrip() {
             className="w-full"
           >
             <CarouselContent className="ml-0 -mr-4">
-              {brandItems.map((brand) => (
+              {brandsData.map((brand) => (
                 <CarouselItem
                   key={brand.id}
                   className="flex basis-1/3 justify-center pl-0 pr-4 sm:basis-1/4 md:basis-1/5 lg:basis-1/6"
                 >
-                  <div className="mx-2 md:mx-4 flex shrink-0 items-center justify-center min-w-fit">
-                    <div className="text-gray-400 font-bold text-base md:text-lg lg:text-xl uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap cursor-default">
-                      {brand.name}
-                    </div>
-                  </div>
-                </CarouselItem>
-              ))}
-              {/* Duplicate items for seamless infinite loop */}
-              {brandItems.map((brand) => (
-                <CarouselItem
-                  key={`${brand.id}-duplicate`}
-                  className="flex basis-1/3 justify-center pl-0 pr-4 sm:basis-1/4 md:basis-1/5 lg:basis-1/6"
-                >
-                  <div className="mx-2 md:mx-4 flex shrink-0 items-center justify-center min-w-fit">
-                    <div className="text-gray-400 font-bold text-base md:text-lg lg:text-xl uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap cursor-default">
-                      {brand.name}
-                    </div>
+                  <div className="mx-2 md:mx-4 flex shrink-0 items-center justify-center h-16 md:h-20">
+                    {brand.logo ? (
+                      <img
+                        src={brand.logo}
+                        alt={brand.name}
+                        className="h-full w-auto max-w-[120px] object-contain opacity-90 hover:opacity-100 transition-opacity"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="text-gray-400 font-bold text-base md:text-lg lg:text-xl uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap cursor-default">
+                        {brand.name}
+                      </div>
+                    )}
                   </div>
                 </CarouselItem>
               ))}

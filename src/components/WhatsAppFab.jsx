@@ -25,7 +25,8 @@ export default function WhatsAppFab() {
       href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 focus:ring-4 focus:ring-green-500/50 transition-all"
+      className="fixed z-50 flex items-center justify-center w-14 h-14 min-w-[56px] min-h-[56px] rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 active:bg-green-700 focus:ring-4 focus:ring-green-500/50 transition-all"
+      style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom))', right: 'max(1.5rem, env(safe-area-inset-right))' }}
       aria-label="Chat on WhatsApp"
     >
       <WhatsAppIcon />
