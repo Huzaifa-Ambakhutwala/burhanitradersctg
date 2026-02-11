@@ -1,0 +1,80 @@
+[
+  {
+    "id": "cutting-knives-blades",
+    "name": "Knives & blades",
+    "description": "Snap-off knives, utility knives and replacement blades.",
+    "image": null,
+    "keywords": ["knife", "snap off", "blade", "utility knife", "cutter knife"]
+  },
+  {
+    "id": "pliers-cutters",
+    "name": "Pliers & cutters",
+    "description": "Combination pliers, side cutters, long nose and specialty pliers.",
+    "image": null,
+    "keywords": ["plier", "pliers", "cutter", "cutting pliers", "linesman", "groove joint", "locking pliers", "circlip", "needle nose", "long nose", "end cutting"]
+  },
+  {
+    "id": "screwdrivers-bits",
+    "name": "Screwdrivers & bits",
+    "description": "Individual screwdrivers, bit sets and precision drivers.",
+    "image": null,
+    "keywords": ["screwdriver", "bit set", "bit", "torx", "phillips", "precision screwdriver"]
+  },
+  {
+    "id": "wrenches-sockets",
+    "name": "Wrenches & sockets",
+    "description": "Spanners, socket sets, ratchets and torque tools.",
+    "image": null,
+    "keywords": ["wrench", "spanner", "socket", "ratchet", "torque"]
+  },
+  {
+    "id": "hammers-striking",
+    "name": "Hammers & striking",
+    "description": "Claw hammers, mallets and other striking tools.",
+    "image": null,
+    "keywords": ["hammer", "mallet"]
+  },
+  {
+    "id": "chisels-punches",
+    "name": "Chisels & punches",
+    "description": "Cold chisels, wood chisels and punch sets.",
+    "image": null,
+    "keywords": ["chisel", "punch"]
+  },
+  {
+    "id": "measuring-layout",
+    "name": "Measuring & layout",
+    "description": "Tapes, levels, squares and other measuring tools.",
+    "image": null,
+    "keywords": ["tape measure", "measuring tape", "level", "square", "caliper", "distance measure", "measuring"]
+  },
+  {
+    "id": "clamps-vises",
+    "name": "Clamps & vises",
+    "description": "Clamps, vices and work holding tools.",
+    "image": null,
+    "keywords": ["clamp", "vise", "vice"]
+  },
+  {
+    "id": "tool-sets-kits",
+    "name": "Tool sets & kits",
+    "description": "General purpose tool sets and mechanic kits.",
+    "image": null,
+    "keywords": ["tool set", "toolset", "tool kit", "toolkit", "mechanic tool", "home tool"]
+  },
+  {
+    "id": "storage-bags",
+    "name": "Storage & bags",
+    "description": "Toolboxes, organizers, bags and pouches.",
+    "image": null,
+    "keywords": ["tool box", "toolbox", "organizer", "organiser", "bag", "pouch", "cabinet", "trolley"]
+  },
+  {
+    "id": "other-hand-tools",
+    "name": "Other hand tools",
+    "description": "Hand tools that don’t fit into the main groups.",
+    "image": null,
+    "keywords": []
+  }
+]
+

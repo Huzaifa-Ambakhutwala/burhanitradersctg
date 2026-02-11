@@ -55,12 +55,16 @@ export default function Header() {
               {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
-            <Link to="/" className="flex items-center gap-2 flex-1 justify-center md:justify-start md:flex-initial min-h-[44px] items-center">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-lg shrink-0">B</div>
-              <div className="text-left min-w-0">
-                <div className="font-bold text-gray-900 uppercase tracking-tight leading-tight text-sm sm:text-base truncate">{siteData.name}</div>
-                <div className="text-xs text-gray-500 hidden sm:block">{siteData.tagline}</div>
-              </div>
+            <Link
+              to="/"
+              className="flex items-center justify-center md:justify-start md:flex-initial min-h-[44px]"
+              aria-label={siteData.name}
+            >
+              <img
+                src="/BT_Logo2.png"
+                alt=""
+                className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover shadow-md"
+              />
             </Link>
 
             <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">

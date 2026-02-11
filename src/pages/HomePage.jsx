@@ -18,7 +18,6 @@ export default function HomePage() {
   const featured = productsData.filter((p) => p.featured)
   const newProducts = productsData.filter((p) => p.new)
   const topSellers = productsData.filter((p) => p.featured).slice(0, 6)
-  const automotiveProducts = productsData.filter((p) => p.categoryId === 'automotive-tools')
   const highlightProduct = productsData.find((p) => p.slug === 'ratchet-handle-72t') || productsData[0]
   const similarProducts = productsData.filter((p) => p.categoryId === highlightProduct?.categoryId && p.id !== highlightProduct?.id).slice(0, 3)
 
@@ -74,7 +73,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Must-have / Automotive */}
+      {/* Must-have / Key category */}
       <section className="py-8 sm:py-12 md:py-16 bg-white" aria-labelledby="musthave-heading">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <h2 id="musthave-heading" className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">
@@ -82,15 +81,22 @@ export default function HomePage() {
           </h2>
           <p className="text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base">Everything you need in one place</p>
           <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
-            {categoriesData.slice(0, 5).map((cat) => (
-              <Link key={cat.id} to={`/products/category/${cat.slug}`} className="px-3 py-2.5 sm:px-4 sm:py-2 rounded-lg bg-gray-100 hover:bg-primary hover:text-white active:bg-primary-dark transition-colors text-sm font-medium min-h-[44px] inline-flex items-center">
-                {cat.name}
-              </Link>
-            ))}
+            {categoriesData.slice(0, 5).map((cat) => {
+              const to = cat.slug === 'hand-tools' ? '/hand-tools' : `/products/category/${cat.slug}`
+              return (
+                <Link
+                  key={cat.id}
+                  to={to}
+                  className="px-3 py-2.5 sm:px-4 sm:py-2 rounded-lg bg-gray-100 hover:bg-primary hover:text-white active:bg-primary-dark transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+                >
+                  {cat.name}
+                </Link>
+              )
+            })}
           </div>
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Automotive Tools</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Power tools</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-            {(automotiveProducts.length ? automotiveProducts : productsData.slice(0, 3)).map((product) => (
+            {productsData.filter((p) => p.categoryId === 'power-tools').slice(0, 3).map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>

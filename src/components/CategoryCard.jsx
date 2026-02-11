@@ -2,9 +2,13 @@ import { Link } from 'react-router-dom'
 
 export default function CategoryCard({ category }) {
   const { name, slug, productCount, image } = category
+  const to =
+    slug === 'hand-tools'
+      ? '/hand-tools'
+      : `/products/category/${slug}`
   return (
     <Link
-      to={`/products/category/${slug}`}
+      to={to}
       className="group block bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-primary/30 active:border-primary/40 transition-all min-h-[44px]"
     >
       <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center overflow-hidden">
