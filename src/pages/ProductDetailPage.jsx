@@ -1,9 +1,10 @@
 import { Link, useParams } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ProductCard from '../components/ProductCard'
 import productsData from '../data/products.json'
 import categoriesData from '../data/categories.json'
 import siteData from '../data/site.json'
+import { getBackendFileUrl } from '../lib/adminApi'
 
 export default function ProductDetailPage() {
   const { slug } = useParams()
@@ -17,6 +18,30 @@ export default function ProductDetailPage() {
     [product]
   )
 
+  const [photos, setPhotos] = useState([])
+  const [photosLoaded, setPhotosLoaded] = useState(false)
+
+  useEffect(() => {
+    if (!product?.id) {
+      setPhotosLoaded(true)
+      return
+    }
+    let cancelled = false
+    setPhotosLoaded(false)
+    fetch(
+      `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/products/${encodeURIComponent(
+        product.id
+      )}/photos`
+    )
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) setPhotos(data)
+      })
+      .catch(() => {})
+      .finally(() => !cancelled && setPhotosLoaded(true))
+    return () => { cancelled = true }
+  }, [product?.id])
+
   if (!product) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 text-center">
@@ -27,6 +52,13 @@ export default function ProductDetailPage() {
   }
 
   const priceText = product.showPrice && product.price != null ? `৳ ${product.price}` : 'Inquire for price'
+
+  const mainPhoto = photos.find((p) => p.is_primary) || photos[0]
+  const mainImageUrl = mainPhoto
+    ? getBackendFileUrl(mainPhoto.url)
+    : photosLoaded
+      ? (product.image || null)
+      : null
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
@@ -47,10 +79,12 @@ export default function ProductDetailPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8">
           <div className="aspect-square max-w-sm mx-auto w-full bg-gray-100 rounded-xl overflow-hidden">
-            {product.image ? (
-              <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+            {mainImageUrl ? (
+              <img src={mainImageUrl} alt={product.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-8xl font-bold text-gray-300">{product.name.charAt(0)}</div>
+              <div className="w-full h-full flex items-center justify-center text-8xl font-bold text-gray-300">
+                {!photosLoaded ? '' : product.name.charAt(0)}
+              </div>
             )}
           </div>
           <div>

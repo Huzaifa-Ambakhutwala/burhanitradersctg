@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import HeroCarousel from '../components/HeroCarousel'
 import BrandStrip from '../components/BrandStrip'
@@ -6,6 +7,7 @@ import ProductCard from '../components/ProductCard'
 import siteData from '../data/site.json'
 import categoriesData from '../data/categories.json'
 import productsData from '../data/products.json'
+import { getBackendFileUrl } from '../lib/adminApi'
 
 const stats = [
   { value: '20+', label: 'Brands' },
@@ -14,12 +16,31 @@ const stats = [
   { value: '20+', label: 'Years in Market' },
 ]
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
+
 export default function HomePage() {
   const featured = productsData.filter((p) => p.featured)
   const newProducts = productsData.filter((p) => p.new)
   const topSellers = productsData.filter((p) => p.featured).slice(0, 6)
   const highlightProduct = productsData.find((p) => p.slug === 'ratchet-handle-72t') || productsData[0]
   const similarProducts = productsData.filter((p) => p.categoryId === highlightProduct?.categoryId && p.id !== highlightProduct?.id).slice(0, 3)
+
+  const [highlightPhotoUrl, setHighlightPhotoUrl] = useState(null)
+  const [highlightPhotoDone, setHighlightPhotoDone] = useState(false)
+  useEffect(() => {
+    if (!highlightProduct?.id) return
+    let cancelled = false
+    fetch(`${BACKEND_URL}/api/products/${encodeURIComponent(highlightProduct.id)}/photos`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (cancelled || !Array.isArray(data) || data.length === 0) return
+        const main = data.find((p) => p.is_primary) || data[0]
+        if (main?.url) setHighlightPhotoUrl(getBackendFileUrl(main.url))
+      })
+      .catch(() => {})
+      .finally(() => !cancelled && setHighlightPhotoDone(true))
+    return () => { cancelled = true }
+  }, [highlightProduct?.id])
 
   return (
     <>
@@ -111,7 +132,9 @@ export default function HomePage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-center mb-8 sm:mb-12">
             <div className="aspect-square max-w-md w-full mx-auto bg-gray-200 rounded-xl overflow-hidden">
-              {highlightProduct?.image ? (
+              {highlightPhotoUrl ? (
+                <img src={highlightPhotoUrl} alt={highlightProduct.name} className="w-full h-full object-cover" />
+              ) : highlightPhotoDone && highlightProduct?.image ? (
                 <img src={highlightProduct.image} alt={highlightProduct.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-6xl font-bold text-gray-400">{highlightProduct?.name?.charAt(0)}</div>

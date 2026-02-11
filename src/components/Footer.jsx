@@ -12,9 +12,6 @@ const socialIcons = {
 }
 
 export default function Footer() {
-  const categoriesCol1 = categoriesData.slice(0, 6)
-  const categoriesCol2 = categoriesData.slice(6, 12)
-
   return (
     <footer className="bg-gray-900 text-gray-300">
       {/* CTA strip */}
@@ -48,20 +45,15 @@ export default function Footer() {
           </div>
           <div>
             <h3 className="font-bold text-white mb-4">Product Categories</h3>
-            <ul className="space-y-1 sm:space-y-2 md:columns-2 md:gap-x-4">
-              {categoriesCol1.map((cat) => (
+            <ul className="space-y-1 sm:space-y-2">
+              {categoriesData.map((cat) => (
                 <li key={cat.id}>
-                  <Link to={`/products/category/${cat.slug}`} className="block py-2.5 sm:py-1.5 hover:text-white active:text-white/90 transition-colors -mx-1 px-1 rounded">{cat.name}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold text-white mb-4">Product Categories</h3>
-            <ul className="space-y-1 sm:space-y-2 md:columns-2 md:gap-x-4">
-              {categoriesCol2.map((cat) => (
-                <li key={cat.id}>
-                  <Link to={`/products/category/${cat.slug}`} className="block py-2.5 sm:py-1.5 hover:text-white active:text-white/90 transition-colors -mx-1 px-1 rounded">{cat.name}</Link>
+                  <Link
+                    to={`/products/category/${cat.slug}`}
+                    className="block py-2.5 sm:py-1.5 hover:text-white active:text-white/90 transition-colors -mx-1 px-1 rounded"
+                  >
+                    {cat.name}
+                  </Link>
                 </li>
               ))}
             </ul>

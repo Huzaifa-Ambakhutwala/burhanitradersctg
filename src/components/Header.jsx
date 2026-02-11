@@ -57,7 +57,7 @@ export default function Header() {
 
             <Link
               to="/"
-              className="flex items-center justify-center md:justify-start md:flex-initial min-h-[44px]"
+              className="flex items-center justify-center md:justify-start md:flex-initial min-h-[44px] gap-3"
               aria-label={siteData.name}
             >
               <img
@@ -65,6 +65,10 @@ export default function Header() {
                 alt=""
                 className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover shadow-md"
               />
+              <span className="hidden sm:inline-flex flex-col leading-tight text-lg md:text-xl font-extrabold tracking-tight">
+                <span className="text-[#1E3A8A]">Burhani</span>
+                <span className="text-[#D4AF37]">Traders</span>
+              </span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">

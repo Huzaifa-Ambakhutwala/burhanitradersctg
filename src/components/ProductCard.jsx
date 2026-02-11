@@ -1,16 +1,58 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getBackendFileUrl } from '../lib/adminApi'
 
 export default function ProductCard({ product }) {
-  const { name, slug, categoryName, categoryId, brand, image, price, showPrice, featured, new: isNew } = product
+  const { id, name, slug, categoryName, categoryId, brand, image, price, showPrice, featured, new: isNew } = product
   const showPriceText = showPrice && price != null ? `৳ ${price}` : 'Inquire for price'
+
+  const [photoUrl, setPhotoUrl] = useState(null)
+  const [photoFetched, setPhotoFetched] = useState(false)
+
+  useEffect(() => {
+    if (!id) {
+      setPhotoFetched(true)
+      return
+    }
+    let cancelled = false
+    setPhotoFetched(false)
+    fetch(
+      `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/products/${encodeURIComponent(
+        id
+      )}/photos`
+    )
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (cancelled) return
+        const main = Array.isArray(data) && data.length > 0 ? (data.find((p) => p.is_primary) || data[0]) : null
+        setPhotoUrl(main?.url ? getBackendFileUrl(main.url) : null)
+      })
+      .catch(() => setPhotoUrl(null))
+      .finally(() => !cancelled && setPhotoFetched(true))
+    return () => { cancelled = true }
+  }, [id])
 
   return (
     <article className="group bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
       <Link to={`/products/${slug}`} className="relative block aspect-square bg-gray-100 overflow-hidden">
-        {image ? (
-          <img src={image} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+        {photoUrl ? (
+          <img
+            src={photoUrl}
+            alt={name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            loading="lazy"
+          />
+        ) : photoFetched && image ? (
+          <img
+            src={image}
+            alt={name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            loading="lazy"
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300 text-4xl sm:text-6xl font-bold">{name.charAt(0)}</div>
+          <div className="w-full h-full flex items-center justify-center text-gray-300 text-4xl sm:text-6xl font-bold">
+            {photoFetched ? name.charAt(0) : ''}
+          </div>
         )}
         {(isNew || featured) && (
           <span className="absolute top-2 left-2 px-2 py-0.5 text-xs font-semibold rounded bg-primary text-white">
