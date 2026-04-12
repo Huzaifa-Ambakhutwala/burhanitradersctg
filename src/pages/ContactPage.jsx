@@ -1,38 +1,57 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { MapPin, Phone, Mail } from 'lucide-react'
+import { MapPin, Phone, Mail, AlertCircle } from 'lucide-react'
 import siteData from '../data/site.json'
 
+/** Production: same-origin /api/contact (Vercel serverless + Nodemailer). Dev: set VITE_CONTACT_API_ORIGIN to a deployed URL, or run `vercel dev`. */
+const devApiOrigin = import.meta.env.VITE_CONTACT_API_ORIGIN?.replace(/\/$/, '') || ''
+
+function contactPostUrl() {
+  if (import.meta.env.DEV) {
+    return devApiOrigin ? `${devApiOrigin}/api/contact` : null
+  }
+  return '/api/contact'
+}
+
 export default function ContactPage() {
-  const [status, setStatus] = useState('idle') // idle | sending | success | error
+  const [status, setStatus] = useState('idle') // idle | sending | success | error | unconfigured | dev_no_api
   const [formData, setFormData] = useState({ name: '', email: '', message: '' })
+  const postUrl = contactPostUrl()
+  const isDev = import.meta.env.DEV
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!postUrl) {
+      setStatus('dev_no_api')
+      return
+    }
+
     setStatus('sending')
-    // Replace with your Formspree endpoint: https://formspree.io/f/YOUR_FORM_ID
-    const formspreeEndpoint = import.meta.env.VITE_FORMSPREE_ID
-      ? `https://formspree.io/f/${import.meta.env.VITE_FORMSPREE_ID}`
-      : null
     try {
-      if (formspreeEndpoint) {
-        const res = await fetch(formspreeEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        })
-        if (res.ok) {
-          setStatus('success')
-          setFormData({ name: '', email: '', message: '' })
-        } else {
-          setStatus('error')
-        }
-      } else {
-        // Demo mode: show success without backend (set VITE_FORMSPREE_ID for real submissions)
-        await new Promise((r) => setTimeout(r, 800))
+      const res = await fetch(postUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+
+      if (res.ok) {
         setStatus('success')
         setFormData({ name: '', email: '', message: '' })
+        return
       }
+      if (res.status === 503 && data.error === 'not_configured') {
+        setStatus('unconfigured')
+        return
+      }
+      setStatus('error')
     } catch {
       setStatus('error')
     }
@@ -64,7 +83,9 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <div className="font-semibold text-primary">Email</div>
-                  <a href={`mailto:${siteData.email}`} className="text-gray-600 mt-1 hover:text-primary">{siteData.email}</a>
+                  <a href={`mailto:${siteData.email}`} className="text-gray-600 mt-1 hover:text-primary">
+                    {siteData.email}
+                  </a>
                 </div>
               </li>
               <li className="flex items-start gap-4">
@@ -73,7 +94,9 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <div className="font-semibold text-primary">Contact Number</div>
-                  <a href={`tel:${siteData.phone.replace(/\s/g, '')}`} className="text-gray-600 mt-1 hover:text-primary">{siteData.phone}</a>
+                  <a href={`tel:${siteData.phone.replace(/\s/g, '')}`} className="text-gray-600 mt-1 hover:text-primary">
+                    {siteData.phone}
+                  </a>
                 </div>
               </li>
             </ul>
@@ -84,9 +107,25 @@ export default function ContactPage() {
             <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">
               Looking for reliable hardware tools and fittings? Send us your enquiry and our team will get back to you.
             </p>
+
+            {isDev && !postUrl && (
+              <div className="mb-4 flex gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+                <AlertCircle className="w-5 h-5 shrink-0" aria-hidden />
+                <p>
+                  <strong className="font-semibold">Local dev:</strong> <code className="rounded bg-amber-100 px-1">npm run dev</code> has no
+                  email API. Use <code className="rounded bg-amber-100 px-1">npm run dev:vercel</code> (with SMTP in{' '}
+                  <code className="rounded bg-amber-100 px-1">.env.local</code>), or set{' '}
+                  <code className="rounded bg-amber-100 px-1">VITE_CONTACT_API_ORIGIN</code> to your Vercel URL to POST against the deployed{' '}
+                  <code className="rounded bg-amber-100 px-1">/api/contact</code>. See <code className="rounded bg-amber-100 px-1">.env.example</code>.
+                </p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Name *
+                </label>
                 <input
                   id="contact-name"
                   type="text"
@@ -94,11 +133,14 @@ export default function ContactPage() {
                   required
                   value={formData.name}
                   onChange={handleChange}
+                  autoComplete="name"
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
                 />
               </div>
               <div>
-                <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email *
+                </label>
                 <input
                   id="contact-email"
                   type="email"
@@ -106,11 +148,14 @@ export default function ContactPage() {
                   required
                   value={formData.email}
                   onChange={handleChange}
+                  autoComplete="email"
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
                 />
               </div>
               <div>
-                <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 mb-1">Comment or Message</label>
+                <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 mb-1">
+                  Comment or Message
+                </label>
                 <textarea
                   id="contact-message"
                   name="message"
@@ -121,7 +166,28 @@ export default function ContactPage() {
                 />
               </div>
               {status === 'success' && <p className="text-green-600 text-sm">Thank you! We&apos;ll get back to you soon.</p>}
-              {status === 'error' && <p className="text-red-600 text-sm">Something went wrong. Please try again or email us directly.</p>}
+              {status === 'error' && (
+                <p className="text-red-600 text-sm">Something went wrong. Please try again or email us directly.</p>
+              )}
+              {status === 'unconfigured' && (
+                <p className="text-red-600 text-sm">
+                  Email is not configured on the server yet (missing SMTP settings). Please email us at{' '}
+                  <a href={`mailto:${siteData.email}`} className="font-medium underline">
+                    {siteData.email}
+                  </a>
+                  .
+                </p>
+              )}
+              {status === 'dev_no_api' && (
+                <p className="text-red-600 text-sm">
+                  Cannot send from this dev setup without <code className="text-xs bg-gray-100 px-1 rounded">VITE_CONTACT_API_ORIGIN</code> or{' '}
+                  <code className="text-xs bg-gray-100 px-1 rounded">vercel dev</code>. Email us at{' '}
+                  <a href={`mailto:${siteData.email}`} className="font-medium underline">
+                    {siteData.email}
+                  </a>
+                  .
+                </p>
+              )}
               <button
                 type="submit"
                 disabled={status === 'sending'}

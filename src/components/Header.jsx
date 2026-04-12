@@ -5,6 +5,7 @@ import siteData from '../data/site.json'
 import { useAuth } from '../context/AuthContext'
 import { useCategories } from '../context/CategoriesContext'
 import { categoryPublicPath } from '../lib/catalogPaths'
+import UserAvatar from './UserAvatar'
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -144,13 +145,7 @@ export default function Header() {
                     aria-expanded={accountOpen}
                     aria-haspopup="true"
                   >
-                    {user.photoURL ? (
-                      <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full shrink-0" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
-                        {(user.displayName || user.email || '?').charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <UserAvatar user={user} className="w-8 h-8 text-sm" />
                     <span className="text-sm font-medium text-gray-800 truncate min-w-0">
                       {user.displayName || user.email?.split('@')[0]}
                     </span>
@@ -222,13 +217,7 @@ export default function Header() {
             <div className="px-4 py-4 space-y-0">
               {user && (
                 <div className="flex items-center gap-3 py-3 border-b border-gray-100">
-                  {user.photoURL ? (
-                    <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
-                      {(user.displayName || '?').charAt(0)}
-                    </div>
-                  )}
+                  <UserAvatar user={user} className="w-10 h-10" />
                   <div className="min-w-0">
                     <p className="font-medium text-gray-900 truncate">{user.displayName || 'Signed in'}</p>
                     <p className="text-xs text-gray-500 truncate">{user.email}</p>

@@ -34,11 +34,11 @@ npm run preview   # preview production build
 
 ## Contact form
 
-Without configuration, the contact form runs in **demo mode** (shows success without sending). To send submissions to your inbox:
+Submissions are sent with **Nodemailer** from a **Vercel serverless** route at `/api/contact` (see `api/contact.js`). SMTP credentials stay on the server only.
 
-1. Create a form at [Formspree](https://formspree.io) and copy your form ID.
-2. Create a `.env` file in the project root and add: `VITE_FORMSPREE_ID=your_form_id`
-3. Restart the dev server.
+1. Use a free SMTP provider (e.g. [Brevo](https://www.brevo.com) — free tier, SMTP relay).
+2. In **Vercel → Project → Settings → Environment Variables**, set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `CONTACT_TO` (see `.env.example`). Redeploy.
+3. Local email testing: install [Vercel CLI](https://vercel.com/docs/cli), put the same variables in `.env.local`, run `npm run dev:vercel`. Or set `VITE_CONTACT_API_ORIGIN` to your deployed URL while using `npm run dev`.
 
 ## Customization
 

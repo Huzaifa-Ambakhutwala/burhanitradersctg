@@ -12,6 +12,15 @@ const socialIcons = {
   linkedin: Linkedin,
 }
 
+const quickLinks = [
+  { label: 'Home', to: '/' },
+  { label: 'Products', to: '/products' },
+  { label: 'About Us', to: '/about' },
+  { label: 'Contact Us', to: '/contact' },
+  { label: 'Privacy Policy', to: '/privacy' },
+  { label: 'Terms & Conditions', to: '/terms' },
+]
+
 export default function Footer() {
   const { categories } = useCategories()
 
@@ -38,26 +47,16 @@ export default function Footer() {
           <div>
             <h3 className="font-bold text-white mb-4">Quick Links</h3>
             <ul className="space-y-1 sm:space-y-2">
-              {['Home', 'Products', 'About Us', 'Contact Us', 'Privacy Policy', 'Terms & Conditions'].map((label) => {
-                const to =
-                  label === 'Home'
-                    ? '/'
-                    : label === 'Products'
-                      ? '/products'
-                      : label === 'About Us'
-                        ? '/about'
-                        : '/contact'
-                return (
-                  <li key={label}>
-                    <Link
-                      to={to}
-                      className="block py-2.5 sm:py-1.5 hover:text-white active:text-white/90 transition-colors -mx-1 px-1 rounded"
-                    >
-                      {label}
-                    </Link>
-                  </li>
-                )
-              })}
+              {quickLinks.map(({ label, to }) => (
+                <li key={label}>
+                  <Link
+                    to={to}
+                    className="block py-2.5 sm:py-1.5 hover:text-white active:text-white/90 transition-colors -mx-1 px-1 rounded"
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
           <div>

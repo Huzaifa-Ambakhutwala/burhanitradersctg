@@ -11,6 +11,7 @@ import {
   Package,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import UserAvatar from './UserAvatar'
 
 const navLinkClass = ({ isActive }) =>
   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -125,17 +126,7 @@ export default function AdminLayout() {
           <div className="flex items-center gap-3 min-w-0">
             {user && (
               <div className="flex items-center gap-2 min-w-0 text-right">
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt=""
-                    className="w-9 h-9 rounded-full border border-gray-200 shrink-0"
-                  />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
-                    {(user.displayName || user.email || '?').charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <UserAvatar user={user} className="w-9 h-9 text-sm border border-gray-200" />
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate max-w-[12rem] lg:max-w-xs">
                     {user.displayName || 'Staff'}
