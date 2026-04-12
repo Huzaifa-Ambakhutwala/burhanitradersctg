@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function callerUserExists() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function callerRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function callerIsAdmin() {
+      return callerUserExists() && callerRole() == 'admin';
+    }
+    function callerIsStaff() {
+      return callerUserExists() && callerRole() in ['admin', 'approved'];
+    }
+
+    match /settings/bootstrap {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && !exists(/databases/$(database)/documents/settings/bootstrap)
+        && request.resource.data.firstAdminUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == userId ||
+        callerIsAdmin()
+      );
+      // User profile is created only after settings/bootstrap exists (see AuthContext).
+      allow create: if request.auth != null && request.auth.uid == userId && (
+        (
+          exists(/databases/$(database)/documents/settings/bootstrap)
+          && get(/databases/$(database)/documents/settings/bootstrap).data.firstAdminUid == request.auth.uid
+          && request.resource.data.role == 'admin'
+        )
+        ||
+        (
+          exists(/databases/$(database)/documents/settings/bootstrap)
+          && get(/databases/$(database)/documents/settings/bootstrap).data.firstAdminUid != request.auth.uid
+          && request.resource.data.role == 'pending'
+        )
+      );
+      allow update: if callerIsAdmin()
+        && userId != request.auth.uid
+        && request.resource.data.role == 'approved';
+      allow delete: if false;
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if callerIsStaff();
+    }
+
+    match /products/{productId}/images/{imageId} {
+      allow read: if true;
+      allow create, update, delete: if callerIsStaff();
+    }
+
+    // Deploy these rules to Firebase (firebase deploy --only firestore:rules) or the app cannot read/write categories.
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if callerIsStaff();
+    }
+  }
+}

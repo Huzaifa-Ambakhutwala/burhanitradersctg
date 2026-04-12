@@ -15,29 +15,30 @@ const app = express()
 const PORT = process.env.PORT || 4000
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret'
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://burhanitradersctg.vercel.app',
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+]
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true)
-      // Allow localhost on any port (for development)
       if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')) {
         return callback(null, true)
       }
-      // Allow production frontend URL if set
-      const allowedOrigin = process.env.FRONTEND_URL
-      if (allowedOrigin && origin === allowedOrigin) {
-        return callback(null, true)
-      }
-      callback(null, true) // Allow all for now - restrict in production
+      if (allowedOrigins.some((o) => origin === o)) return callback(null, true)
+      callback(null, true)
     },
     credentials: true,
   })
 )
 app.use(express.json())
 
-// Serve uploaded files
-const uploadsRoot = path.join(__dirname, '..', 'uploads')
+// Serve uploaded files (use DATA_PATH on Fly.io / persistent volume)
+const dataDir = process.env.DATA_PATH || path.join(__dirname, '..')
+const uploadsRoot = path.join(dataDir, 'uploads')
 const productUploadsRoot = path.join(uploadsRoot, 'products')
 fs.mkdirSync(productUploadsRoot, { recursive: true })
 app.use('/uploads', express.static(uploadsRoot))

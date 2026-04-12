@@ -1,11 +1,9 @@
 import { Link } from 'react-router-dom'
+import { categoryPublicPath } from '../lib/catalogPaths'
 
 export default function CategoryCard({ category }) {
   const { name, slug, productCount, image } = category
-  const to =
-    slug === 'hand-tools'
-      ? '/hand-tools'
-      : `/products/category/${slug}`
+  const to = categoryPublicPath(slug)
   return (
     <Link
       to={to}
@@ -15,7 +13,9 @@ export default function CategoryCard({ category }) {
         {image ? (
           <img src={image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
         ) : (
-          <span className="text-3xl sm:text-4xl font-bold text-gray-300 group-hover:text-primary/50 transition-colors">{name.charAt(0)}</span>
+          <span className="text-3xl sm:text-4xl font-bold text-gray-300 group-hover:text-primary/50 transition-colors">
+            {name.charAt(0)}
+          </span>
         )}
       </div>
       <div className="p-3 sm:p-4">

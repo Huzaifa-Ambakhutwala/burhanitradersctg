@@ -1,37 +1,211 @@
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useMemo } from 'react'
 import ProductCard from '../components/ProductCard'
-import productsData from '../data/products.json'
+import { useProducts } from '../context/ProductsContext'
+import { useCategories } from '../context/CategoriesContext'
+import { groupProductsByCategory } from '../lib/groupProductsByCategory'
+import { categoryPublicPath } from '../lib/catalogPaths'
 
 export default function ProductsPage() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const q = searchParams.get('q')?.toLowerCase()?.trim() || ''
+  const categorySlug = searchParams.get('category')?.trim() || ''
+  const { products, loading } = useProducts()
+  const { categories } = useCategories()
 
-  const products = useMemo(() => {
-    if (!q) return productsData
-    return productsData.filter(
+  const filtered = useMemo(() => {
+    if (!q) return products
+    return products.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.categoryName?.toLowerCase().includes(q) ||
         p.brand?.toLowerCase().includes(q)
     )
-  }, [q])
+  }, [products, q])
+
+  const activeCategory = useMemo(
+    () => (categorySlug ? categories.find((c) => c.slug === categorySlug) : null),
+    [categorySlug, categories]
+  )
+
+  const groupedAll = useMemo(() => groupProductsByCategory(filtered, categories), [filtered, categories])
+
+  const categoryCounts = useMemo(() => {
+    const m = {}
+    for (const p of products) {
+      const id = p.categoryId || '_other'
+      m[id] = (m[id] || 0) + 1
+    }
+    return m
+  }, [products])
+
+  const setCategoryParam = (slug) => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('q')
+    if (slug) next.set('category', slug)
+    else next.delete('category')
+    setSearchParams(next, { replace: true })
+  }
+
+  const showGroupedBrowse = !q && !activeCategory
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Products</h1>
+        <nav className="text-xs sm:text-sm text-gray-500 mb-3" aria-label="Breadcrumb">
+          <Link to="/" className="hover:text-primary">
+            Home
+          </Link>
+          <span className="mx-2">/</span>
+          <span className="text-gray-900">Products</span>
+          {activeCategory && (
+            <>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900">{activeCategory.name}</span>
+            </>
+          )}
+        </nav>
+
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          {activeCategory ? activeCategory.name : 'Products'}
+        </h1>
+
         {q && (
           <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">
-            {products.length} result{products.length !== 1 ? 's' : ''} for &quot;{q}&quot;
+            {filtered.length} result{filtered.length !== 1 ? 's' : ''} for &quot;{q}&quot;
           </p>
         )}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-        {products.length === 0 && (
+
+        {!q && !activeCategory && (
+          <p className="text-gray-600 mb-4 text-sm sm:text-base">
+            Browse by category or filter to one group. Everything here is managed in the admin portal.
+          </p>
+        )}
+
+        {!q && (
+          <div className="flex flex-wrap gap-2 mb-6 sm:mb-8">
+            <button
+              type="button"
+              onClick={() => setCategoryParam('')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium min-h-[44px] transition-colors ${
+                !activeCategory
+                  ? 'bg-primary text-white'
+                  : 'bg-white border border-gray-200 text-gray-800 hover:border-primary/40'
+              }`}
+            >
+              All categories
+            </button>
+            {categories.map((cat) => {
+              const count = categoryCounts[cat.id] ?? 0
+              if (count === 0) return null
+              const active = activeCategory?.id === cat.id
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategoryParam(cat.slug)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium min-h-[44px] transition-colors ${
+                    active
+                      ? 'bg-primary text-white'
+                      : 'bg-white border border-gray-200 text-gray-800 hover:border-primary/40'
+                  }`}
+                >
+                  {cat.name}
+                  <span className="text-xs opacity-80 ml-1">({count})</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {showGroupedBrowse && !loading && (
+          <div
+            className="sticky top-[3.5rem] z-30 -mx-4 px-4 sm:mx-0 sm:px-0 py-3 mb-6 bg-gray-50/95 backdrop-blur border-b border-gray-200 sm:border-0"
+            aria-label="Jump to category"
+          >
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Jump to</p>
+            <div className="flex flex-wrap gap-2">
+              {groupedAll
+                .filter((g) => g.products.length > 0)
+                .map((g) => (
+                  <a
+                    key={g.categoryId}
+                    href={`#products-cat-${g.categoryId}`}
+                    className="inline-flex items-center px-2.5 py-1.5 rounded-md bg-white border border-gray-200 text-xs sm:text-sm text-gray-800 hover:border-primary hover:text-primary"
+                  >
+                    {g.categoryName}
+                    <span className="text-gray-500 ml-1">({g.products.length})</span>
+                  </a>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {loading && <p className="text-gray-600 text-sm py-8">Loading products…</p>}
+
+        {!loading && q && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+            {filtered.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
+
+        {!loading && !q && activeCategory && (
+          <>
+            <p className="text-gray-600 text-sm mb-4 sm:mb-6">
+              {filtered.filter((p) => p.categoryId === activeCategory.id).length} products
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+              {filtered
+                .filter((p) => p.categoryId === activeCategory.id)
+                .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
+                .map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+            </div>
+          </>
+        )}
+
+        {!loading && showGroupedBrowse && (
+          <div className="space-y-12 sm:space-y-14">
+            {groupedAll
+              .filter((g) => g.products.length > 0)
+              .map((group) => (
+                <section
+                  key={group.categoryId}
+                  id={`products-cat-${group.categoryId}`}
+                  className="scroll-mt-36 sm:scroll-mt-32"
+                  aria-labelledby={`heading-cat-${group.categoryId}`}
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4 sm:mb-6 pb-3 border-b border-gray-200">
+                    <h2 id={`heading-cat-${group.categoryId}`} className="text-xl sm:text-2xl font-bold text-gray-900">
+                      {group.categoryName}
+                    </h2>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="text-gray-500">{group.products.length} products</span>
+                      {group.slug && (
+                        <Link to={categoryPublicPath(group.slug)} className="font-medium text-primary hover:underline">
+                          Category page →
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+                    {group.products.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+          </div>
+        )}
+
+        {!loading && filtered.length === 0 && !q && activeCategory && (
+          <p className="text-gray-500 py-12 text-center">No products in this category yet.</p>
+        )}
+
+        {!loading && filtered.length === 0 && q && (
           <p className="text-gray-500 py-12 text-center">No products found. Try a different search.</p>
         )}
       </div>
