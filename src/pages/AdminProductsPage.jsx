@@ -197,22 +197,6 @@ export default function AdminProductsPage() {
           </div>
         </div>
 
-        {isAdmin && (
-          <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50/80 text-sm">
-            <p className="font-semibold text-red-900">Danger zone</p>
-            <p className="text-red-800 mt-1">Remove every product to start from scratch (images deleted too).</p>
-            <button
-              type="button"
-              disabled={purgeBusy || productCount === 0}
-              onClick={handlePurgeAll}
-              className="mt-3 px-4 py-2 rounded-lg bg-red-700 text-white text-sm font-medium hover:bg-red-800 disabled:opacity-50"
-            >
-              {purgeBusy ? 'Deleting…' : 'Delete all products'}
-            </button>
-            {purgeMsg && <p className="mt-2 text-red-900">{purgeMsg}</p>}
-          </div>
-        )}
-
         <div className="mb-4">
           <input
             type="search"
@@ -347,6 +331,22 @@ export default function AdminProductsPage() {
             {filtered.length === 0 && productCount > 0 && (
               <p className="text-sm text-gray-600">No products match this search.</p>
             )}
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="mt-10 p-4 rounded-xl border border-red-200 bg-red-50/80 text-sm">
+            <p className="font-semibold text-red-900">Danger zone</p>
+            <p className="text-red-800 mt-1">Remove every product to start from scratch (images deleted too).</p>
+            <button
+              type="button"
+              disabled={purgeBusy || productCount === 0}
+              onClick={handlePurgeAll}
+              className="mt-3 px-4 py-2 rounded-lg bg-red-700 text-white text-sm font-medium hover:bg-red-800 disabled:opacity-50"
+            >
+              {purgeBusy ? 'Deleting…' : 'Delete all products'}
+            </button>
+            {purgeMsg && <p className="mt-2 text-red-900">{purgeMsg}</p>}
           </div>
         )}
       </div>

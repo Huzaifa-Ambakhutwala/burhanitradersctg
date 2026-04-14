@@ -1,34 +1,47 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-
-const slides = [
-  {
-    title: 'Quality Tools for Professionals',
-    subtitle: 'European-grade tools delivered with authenticity and competitive pricing.',
-    cta: 'Shop Now',
-    bg: 'linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #14b8a6 100%)',
-  },
-  {
-    title: 'Hardware for Smart Spaces',
-    subtitle: 'Furniture fittings and hardware for smooth performance and long-lasting reliability.',
-    cta: 'Shop Now',
-    bg: 'linear-gradient(135deg, #075985 0%, #0369a1 50%, #0ea5e9 100%)',
-  },
-  {
-    title: 'Built for Real Work',
-    subtitle: 'From workshop to worksites — performance that professionals depend on.',
-    cta: 'Shop Now',
-    bg: 'linear-gradient(135deg, #1e3a5f 0%, #0d9488 100%)',
-  },
-]
+import { doc, onSnapshot } from 'firebase/firestore'
+import { db } from '../lib/firebase'
+import { defaultHero } from '../lib/defaultHeroSlides'
 
 export default function HeroCarousel() {
   const [current, setCurrent] = useState(0)
+  const [hero, setHero] = useState(defaultHero)
+
+  const slides = useMemo(() => {
+    const list = Array.isArray(hero?.slides) ? hero.slides : []
+    return list.length ? list : defaultHero.slides
+  }, [hero])
+
+  const autoAdvanceMs = hero?.autoAdvanceMs || defaultHero.autoAdvanceMs
 
   useEffect(() => {
-    const t = setInterval(() => setCurrent((c) => (c + 1) % slides.length), 5000)
+    const t = setInterval(() => setCurrent((c) => (c + 1) % slides.length), autoAdvanceMs)
     return () => clearInterval(t)
+  }, [slides.length, autoAdvanceMs])
+
+  useEffect(() => {
+    const ref = doc(db, 'settings', 'hero')
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) {
+          setHero(defaultHero)
+          return
+        }
+        const data = snap.data() || {}
+        setHero({
+          autoAdvanceMs: Number(data.autoAdvanceMs) || defaultHero.autoAdvanceMs,
+          slides: Array.isArray(data.slides) ? data.slides : defaultHero.slides,
+        })
+      },
+      () => {
+        // If rules/network fail, keep defaults.
+        setHero(defaultHero)
+      }
+    )
+    return () => unsub()
   }, [])
 
   return (
@@ -39,12 +52,24 @@ export default function HeroCarousel() {
             key={i}
             className="absolute inset-0 transition-opacity duration-500"
             style={{
-              background: slide.bg,
+              background: slide.bg || defaultHero.slides[i % defaultHero.slides.length]?.bg,
               opacity: i === current ? 1 : 0,
               zIndex: i === current ? 1 : 0,
             }}
             aria-hidden={i !== current}
           >
+            {!!slide.imageUrl && (
+              <>
+                <img
+                  src={slide.imageUrl}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                />
+                <div className="absolute inset-0 bg-black/35" aria-hidden />
+              </>
+            )}
+
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4 sm:px-6">
               <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold max-w-2xl leading-tight">
                 {slide.title}
@@ -53,10 +78,10 @@ export default function HeroCarousel() {
                 {slide.subtitle}
               </p>
               <Link
-                to="/products"
+                to={slide.ctaHref || '/products'}
                 className="mt-4 sm:mt-6 inline-flex items-center gap-2 bg-white text-primary-dark px-5 py-3 sm:px-6 sm:py-3 rounded-lg font-semibold hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[48px] items-center"
               >
-                {slide.cta}
+                {slide.ctaLabel || 'Shop Now'}
                 <ChevronRight className="w-5 h-5" />
               </Link>
             </div>

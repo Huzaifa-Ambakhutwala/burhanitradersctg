@@ -15,6 +15,7 @@ import AdminProductsPage from './pages/AdminProductsPage'
 import AdminProductEditPage from './pages/AdminProductEditPage'
 import AdminCategoriesPage from './pages/AdminCategoriesPage'
 import AdminUsersPage from './pages/AdminUsersPage'
+import AdminHeroPage from './pages/AdminHeroPage'
 import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import PrivacyPage from './pages/PrivacyPage'
@@ -41,6 +42,7 @@ function App() {
         <Route path="products/new" element={<AdminProductEditPage />} />
         <Route path="products/:productId" element={<AdminProductEditPage />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
+        <Route path="hero" element={<AdminHeroPage />} />
         <Route
           path="users"
           element={

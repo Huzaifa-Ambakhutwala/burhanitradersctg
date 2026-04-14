@@ -24,6 +24,12 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Public can read hero content; staff can update it.
+    match /settings/hero {
+      allow read: if true;
+      allow create, update, delete: if callerIsStaff();
+    }
+
     match /users/{userId} {
       allow read: if request.auth != null && (
         request.auth.uid == userId ||

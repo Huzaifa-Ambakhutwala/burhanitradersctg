@@ -3,6 +3,7 @@ import { NavLink, Outlet, Link } from 'react-router-dom'
 import {
   LayoutGrid,
   FolderTree,
+  Image,
   Users,
   LogOut,
   Menu,
@@ -33,6 +34,10 @@ export default function AdminLayout() {
       <NavLink to="/admin/categories" className={navLinkClass} onClick={closeMobile}>
         <FolderTree className="w-5 h-5 shrink-0" aria-hidden />
         Categories
+      </NavLink>
+      <NavLink to="/admin/hero" className={navLinkClass} onClick={closeMobile}>
+        <Image className="w-5 h-5 shrink-0" aria-hidden />
+        Hero
       </NavLink>
       {isAdmin && (
         <NavLink to="/admin/users" className={navLinkClass} onClick={closeMobile}>

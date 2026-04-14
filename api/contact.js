@@ -1,8 +1,10 @@
 import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
 const MAX_LEN = { name: 200, email: 320, message: 8000 }
 
 function isConfigured() {
+  if (process.env.RESEND_API_KEY && (process.env.CONTACT_TO || process.env.RESEND_TO)) return true
   return Boolean(
     process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.CONTACT_TO
   )
@@ -58,32 +60,50 @@ export default async function handler(req, res) {
 
   const { name, email, message } = parsed
   const siteName = process.env.CONTACT_SITE_NAME || 'Website'
-
-  const port = Number(process.env.SMTP_PORT || 587)
-  const secure =
-    process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1' || port === 465
-
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port,
-    secure,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  })
-
-  const from = process.env.CONTACT_FROM || process.env.SMTP_USER
+  const to = process.env.CONTACT_TO || process.env.RESEND_TO
 
   try {
-    await transporter.sendMail({
-      from: `"${siteName} enquiry" <${from}>`,
-      to: process.env.CONTACT_TO,
-      replyTo: email,
-      subject: `Website enquiry — ${name}`,
-      text: [`From: ${name} <${email}>`, '', message || '(no message)'].join('\n'),
-      html: `<p><strong>From:</strong> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</p><p>${escapeHtml(message || '(no message)').replace(/\n/g, '<br/>')}</p>`,
-    })
+    // Prefer Resend if configured; otherwise fallback to SMTP.
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      const from = process.env.RESEND_FROM || process.env.CONTACT_FROM
+      if (!from) {
+        return res.status(503).json({ error: 'not_configured' })
+      }
+      const { error } = await resend.emails.send({
+        from,
+        to: to ? [to] : [],
+        replyTo: email,
+        subject: `Website enquiry — ${name}`,
+        text: [`From: ${name} <${email}>`, '', message || '(no message)'].join('\n'),
+        html: `<p><strong>From:</strong> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</p><p>${escapeHtml(message || '(no message)').replace(/\n/g, '<br/>')}</p>`,
+      })
+      if (error) throw new Error(error.message || 'Resend send failed')
+    } else {
+      const port = Number(process.env.SMTP_PORT || 587)
+      const secure =
+        process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1' || port === 465
+
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port,
+        secure,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      })
+
+      const from = process.env.CONTACT_FROM || process.env.SMTP_USER
+      await transporter.sendMail({
+        from: `"${siteName} enquiry" <${from}>`,
+        to,
+        replyTo: email,
+        subject: `Website enquiry — ${name}`,
+        text: [`From: ${name} <${email}>`, '', message || '(no message)'].join('\n'),
+        html: `<p><strong>From:</strong> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</p><p>${escapeHtml(message || '(no message)').replace(/\n/g, '<br/>')}</p>`,
+      })
+    }
     return res.status(200).json({ ok: true })
   } catch (e) {
     console.error('contact mail error', e.message)
