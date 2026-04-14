@@ -19,6 +19,7 @@ import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import PrivacyPage from './pages/PrivacyPage'
 import TermsPage from './pages/TermsPage'
+import BrandsPage from './pages/BrandsPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
         <Route path="products" element={<ProductsPage />} />
         <Route path="products/category/:slug" element={<CategoryPage />} />
         <Route path="products/:slug" element={<ProductDetailPage />} />
+        <Route path="brands" element={<BrandsPage />} />
         <Route path="hand-tools" element={<HandToolsPage />} />
         <Route path="hand-tools/:subcategoryId" element={<HandToolsCategoryPage />} />
         <Route path="about" element={<AboutPage />} />

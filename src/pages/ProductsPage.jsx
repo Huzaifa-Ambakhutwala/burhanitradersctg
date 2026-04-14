@@ -5,28 +5,40 @@ import { useProducts } from '../context/ProductsContext'
 import { useCategories } from '../context/CategoriesContext'
 import { groupProductsByCategory } from '../lib/groupProductsByCategory'
 import { categoryPublicPath } from '../lib/catalogPaths'
+import { slugify } from '../lib/slugify'
 
 export default function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const q = searchParams.get('q')?.toLowerCase()?.trim() || ''
   const categorySlug = searchParams.get('category')?.trim() || ''
+  const brandSlug = searchParams.get('brand')?.trim() || ''
   const { products, loading } = useProducts()
   const { categories } = useCategories()
 
   const filtered = useMemo(() => {
-    if (!q) return products
-    return products.filter(
+    let list = products
+    if (brandSlug) {
+      list = list.filter((p) => slugify(p.brand || '') === brandSlug)
+    }
+    if (!q) return list
+    return list.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.categoryName?.toLowerCase().includes(q) ||
         p.brand?.toLowerCase().includes(q)
     )
-  }, [products, q])
+  }, [products, q, brandSlug])
 
   const activeCategory = useMemo(
     () => (categorySlug ? categories.find((c) => c.slug === categorySlug) : null),
     [categorySlug, categories]
   )
+
+  const activeBrand = useMemo(() => {
+    if (!brandSlug) return null
+    const match = products.find((p) => slugify(p.brand || '') === brandSlug)
+    return match?.brand || null
+  }, [brandSlug, products])
 
   const groupedAll = useMemo(() => groupProductsByCategory(filtered, categories), [filtered, categories])
 
@@ -42,12 +54,22 @@ export default function ProductsPage() {
   const setCategoryParam = (slug) => {
     const next = new URLSearchParams(searchParams)
     next.delete('q')
+    next.delete('brand')
     if (slug) next.set('category', slug)
     else next.delete('category')
     setSearchParams(next, { replace: true })
   }
 
-  const showGroupedBrowse = !q && !activeCategory
+  const setBrandParam = (slug) => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('q')
+    next.delete('category')
+    if (slug) next.set('brand', slug)
+    else next.delete('brand')
+    setSearchParams(next, { replace: true })
+  }
+
+  const showGroupedBrowse = !q && !activeCategory && !activeBrand
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
@@ -64,10 +86,16 @@ export default function ProductsPage() {
               <span className="text-gray-900">{activeCategory.name}</span>
             </>
           )}
+          {activeBrand && (
+            <>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900">{activeBrand}</span>
+            </>
+          )}
         </nav>
 
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-          {activeCategory ? activeCategory.name : 'Products'}
+          {activeCategory ? activeCategory.name : activeBrand ? activeBrand : 'Products'}
         </h1>
 
         {q && (
@@ -76,13 +104,13 @@ export default function ProductsPage() {
           </p>
         )}
 
-        {!q && !activeCategory && (
+        {!q && !activeCategory && !activeBrand && (
           <p className="text-gray-600 mb-4 text-sm sm:text-base">
             Browse by category or filter to one group. Everything here is managed in the admin portal.
           </p>
         )}
 
-        {!q && (
+        {!q && !activeBrand && (
           <div className="flex flex-wrap gap-2 mb-6 sm:mb-8">
             <button
               type="button"
@@ -115,6 +143,21 @@ export default function ProductsPage() {
                 </button>
               )
             })}
+          </div>
+        )}
+
+        {!q && activeBrand && (
+          <div className="flex flex-wrap items-center gap-2 mb-6 sm:mb-8">
+            <button
+              type="button"
+              onClick={() => setBrandParam('')}
+              className="px-3 py-2 rounded-lg text-sm font-medium min-h-[44px] bg-white border border-gray-200 text-gray-800 hover:border-primary/40"
+            >
+              Clear brand filter
+            </button>
+            <span className="text-sm text-gray-600">
+              Showing products by <span className="font-semibold text-gray-900">{activeBrand}</span>
+            </span>
           </div>
         )}
 

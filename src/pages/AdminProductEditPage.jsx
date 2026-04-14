@@ -89,6 +89,17 @@ export default function AdminProductEditPage() {
         })
         const imgs = await listProductImages(id)
         if (!cancelled) setPhotos(imgs)
+        if (!cancelled) {
+          try {
+            const w = sessionStorage.getItem(`product-upload-warn-${id}`)
+            if (w) {
+              setError(w)
+              sessionStorage.removeItem(`product-upload-warn-${id}`)
+            }
+          } catch {
+            /* ignore */
+          }
+        }
       } catch (e) {
         if (!cancelled) setError(e.message || 'Failed to load')
       } finally {
@@ -180,6 +191,24 @@ export default function AdminProductEditPage() {
         payload.createdAt = serverTimestamp()
       }
       await setDoc(doc(db, 'products', docId), payload, { merge: true })
+
+      if (isNew && files.length > 0 && user) {
+        try {
+          for (const file of files) {
+            await uploadProductImage(docId, file, user.uid)
+          }
+          setFiles([])
+        } catch (uploadErr) {
+          const msg =
+            uploadErr?.message || 'Product was saved, but one or more photos failed to upload. Try again below.'
+          try {
+            sessionStorage.setItem(`product-upload-warn-${docId}`, msg)
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+
       if (isNew) {
         navigate(`/admin/products/${docId}`, { replace: true })
       }
@@ -295,6 +324,12 @@ export default function AdminProductEditPage() {
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
             placeholder={slugify(form.name) || 'product-url'}
           />
+          <p className="text-xs text-gray-500 mt-1">
+            This becomes the product link on the public site:{' '}
+            <span className="font-mono text-gray-600">/products/</span>
+            <span className="font-mono text-primary">{slugify(form.slug || form.name) || 'your-slug'}</span>. Use lowercase words
+            separated by hyphens; it must be unique.
+          </p>
           <button
             type="button"
             className="mt-1 text-xs text-primary hover:underline"
@@ -403,7 +438,7 @@ export default function AdminProductEditPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Legacy image URL (optional)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">External image URL (optional, legacy)</label>
           <input
             type="url"
             value={form.image}
@@ -411,7 +446,29 @@ export default function AdminProductEditPage() {
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             placeholder="https://…"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Only for pictures still hosted outside Firebase (e.g. old imports). The storefront prefers{' '}
+            <strong className="font-medium text-gray-600">uploaded photos</strong> (primary image below). Leave empty if you use uploads only.
+          </p>
         </div>
+
+        {isNew && (
+          <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50/80 p-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Photos (optional)</label>
+            <p className="text-xs text-gray-500 mb-2">
+              JPEG, PNG, or WebP. They are saved to Firebase Storage right after you click &quot;Save product&quot;. First image becomes the
+              primary thumbnail unless you change it on the next screen.
+            </p>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={(e) => setFiles(Array.from(e.target.files || []))}
+              className="block w-full text-sm file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold"
+            />
+            {files.length > 0 && <p className="text-xs text-gray-600 mt-2">{files.length} file(s) ready to upload after save</p>}
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-3 pt-2">
           <button
@@ -419,7 +476,7 @@ export default function AdminProductEditPage() {
             disabled={saving || (!isNew && !id)}
             className="inline-flex items-center justify-center bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-dark disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Save product'}
+            {saving ? (isNew && files.length > 0 ? 'Saving & uploading…' : 'Saving…') : 'Save product'}
           </button>
           <Link
             to="/admin/products"
