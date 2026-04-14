@@ -30,6 +30,16 @@ export default function ProductDetailPage() {
     [product, products]
   )
 
+  const whatsappInquiryText = useMemo(() => {
+    if (!product) return ''
+    const categoryName = category?.name || product.categoryName || ''
+    const brandName = (product.brand || '').trim()
+    const lines = [`Inquiry for: ${product.name}`]
+    if (categoryName) lines.push(`Category: ${categoryName}`)
+    if (brandName) lines.push(`Brand: ${brandName}`)
+    return lines.join('\n')
+  }, [product, category])
+
   if (!loading && !product) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 text-center">
@@ -99,7 +109,7 @@ export default function ProductDetailPage() {
                 Get a Quote
               </Link>
               <a
-                href={`https://wa.me/${siteData.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Inquiry for: ${product.name}`)}`}
+                href={`https://wa.me/${siteData.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(whatsappInquiryText)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center bg-green-500 text-white px-6 py-3.5 rounded-lg font-semibold hover:bg-green-600 active:bg-green-700 transition-colors min-h-[48px] w-full sm:w-auto"

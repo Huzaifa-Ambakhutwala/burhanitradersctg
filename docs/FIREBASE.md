@@ -51,10 +51,10 @@ Copy `.env.example` to `.env.local` for local dev. For **Vercel**, add the same 
 2. In **Admin → Products**, click **Import catalog from JSON** once to copy all products from the bundled `products.json` into Firestore.
 3. Upload product images under each product; files go to Storage and `primaryImageUrl` is updated on the product doc.
 
-## 5. Approvals
+## 5. Users
 
 - New Google users after the first get role **pending** and see `/admin/pending`.
-- An **admin** opens **Admin → Approvals** (`/admin/users`) and sets them to **approved** so they can use the admin product/photo tools.
+- An **admin** opens **Admin → Users** (`/admin/users`) to see all accounts and set pending users to **approved** so they can use the admin product/photo tools.
 
 ## 6. Security note
 

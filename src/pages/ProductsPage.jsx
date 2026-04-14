@@ -7,11 +7,21 @@ import { groupProductsByCategory } from '../lib/groupProductsByCategory'
 import { categoryPublicPath } from '../lib/catalogPaths'
 import { slugify } from '../lib/slugify'
 
+function brandParamFromSearch(searchParams) {
+  const raw = searchParams.get('brand')?.trim()
+  if (!raw) return ''
+  try {
+    return slugify(decodeURIComponent(raw))
+  } catch {
+    return slugify(raw)
+  }
+}
+
 export default function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const q = searchParams.get('q')?.toLowerCase()?.trim() || ''
   const categorySlug = searchParams.get('category')?.trim() || ''
-  const brandSlug = searchParams.get('brand')?.trim() || ''
+  const brandSlug = brandParamFromSearch(searchParams)
   const { products, loading } = useProducts()
   const { categories } = useCategories()
 
@@ -34,10 +44,10 @@ export default function ProductsPage() {
     [categorySlug, categories]
   )
 
-  const activeBrand = useMemo(() => {
+  const brandTitle = useMemo(() => {
     if (!brandSlug) return null
     const match = products.find((p) => slugify(p.brand || '') === brandSlug)
-    return match?.brand || null
+    return match?.brand || brandSlug.replace(/-/g, ' ')
   }, [brandSlug, products])
 
   const groupedAll = useMemo(() => groupProductsByCategory(filtered, categories), [filtered, categories])
@@ -69,7 +79,7 @@ export default function ProductsPage() {
     setSearchParams(next, { replace: true })
   }
 
-  const showGroupedBrowse = !q && !activeCategory && !activeBrand
+  const showGroupedBrowse = !q && !activeCategory && !brandSlug
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
@@ -86,16 +96,16 @@ export default function ProductsPage() {
               <span className="text-gray-900">{activeCategory.name}</span>
             </>
           )}
-          {activeBrand && (
+          {brandTitle && (
             <>
               <span className="mx-2">/</span>
-              <span className="text-gray-900">{activeBrand}</span>
+              <span className="text-gray-900">{brandTitle}</span>
             </>
           )}
         </nav>
 
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-          {activeCategory ? activeCategory.name : activeBrand ? activeBrand : 'Products'}
+          {activeCategory ? activeCategory.name : brandTitle || 'Products'}
         </h1>
 
         {q && (
@@ -104,13 +114,13 @@ export default function ProductsPage() {
           </p>
         )}
 
-        {!q && !activeCategory && !activeBrand && (
+        {!q && !activeCategory && !brandSlug && (
           <p className="text-gray-600 mb-4 text-sm sm:text-base">
             Browse by category or filter to one group. Everything here is managed in the admin portal.
           </p>
         )}
 
-        {!q && !activeBrand && (
+        {!q && !brandSlug && (
           <div className="flex flex-wrap gap-2 mb-6 sm:mb-8">
             <button
               type="button"
@@ -146,7 +156,7 @@ export default function ProductsPage() {
           </div>
         )}
 
-        {!q && activeBrand && (
+        {!q && brandSlug && (
           <div className="flex flex-wrap items-center gap-2 mb-6 sm:mb-8">
             <button
               type="button"
@@ -156,7 +166,7 @@ export default function ProductsPage() {
               Clear brand filter
             </button>
             <span className="text-sm text-gray-600">
-              Showing products by <span className="font-semibold text-gray-900">{activeBrand}</span>
+              Showing products by <span className="font-semibold text-gray-900">{brandTitle}</span>
             </span>
           </div>
         )}
@@ -210,6 +220,21 @@ export default function ProductsPage() {
           </>
         )}
 
+        {!loading && !q && brandSlug && !activeCategory && filtered.length > 0 && (
+          <>
+            <p className="text-gray-600 text-sm mb-4 sm:mb-6">
+              {filtered.length} product{filtered.length !== 1 ? 's' : ''}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+              {filtered
+                .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
+                .map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+            </div>
+          </>
+        )}
+
         {!loading && showGroupedBrowse && (
           <div className="space-y-12 sm:space-y-14">
             {groupedAll
@@ -246,6 +271,10 @@ export default function ProductsPage() {
 
         {!loading && filtered.length === 0 && !q && activeCategory && (
           <p className="text-gray-500 py-12 text-center">No products in this category yet.</p>
+        )}
+
+        {!loading && filtered.length === 0 && !q && brandSlug && !activeCategory && (
+          <p className="text-gray-500 py-12 text-center">No products for this brand yet.</p>
         )}
 
         {!loading && filtered.length === 0 && q && (

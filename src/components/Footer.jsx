@@ -17,6 +17,7 @@ const quickLinks = [
   { label: 'Products', to: '/products' },
   { label: 'About Us', to: '/about' },
   { label: 'Contact Us', to: '/contact' },
+  { label: 'Login', to: '/admin/login' },
   { label: 'Privacy Policy', to: '/privacy' },
   { label: 'Terms & Conditions', to: '/terms' },
 ]

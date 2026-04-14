@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductsContext'
@@ -7,8 +7,13 @@ import { groupProductsByCategory } from '../lib/groupProductsByCategory'
 import { categoryPublicPath } from '../lib/catalogPaths'
 import { deleteAllProducts } from '../lib/deleteAllProducts'
 import { slugify } from '../lib/slugify'
+import {
+  buildBulkImportPlan,
+  readWorkbookFirstSheetJson,
+  writeProductsWorkbook,
+} from '../lib/productSpreadsheet'
 import { db } from '../lib/firebase'
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { doc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
 
 export default function AdminProductsPage() {
   const navigate = useNavigate()
@@ -23,6 +28,9 @@ export default function AdminProductsPage() {
   const [replicateError, setReplicateError] = useState('')
   const [replicateSource, setReplicateSource] = useState(null)
   const [replicateForm, setReplicateForm] = useState(null)
+  const importInputRef = useRef(null)
+  const [importBusy, setImportBusy] = useState(false)
+  const [importResult, setImportResult] = useState(null)
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim()
@@ -171,6 +179,91 @@ export default function AdminProductsPage() {
     }
   }
 
+  const handleExportExcel = async () => {
+    setImportResult(null)
+    try {
+      const XLSX = await import('xlsx')
+      const api = XLSX.default ?? XLSX
+      const wb = writeProductsWorkbook(api, products, categories)
+      const d = new Date()
+      const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      api.writeFile(wb, `products-export-${stamp}.xlsx`)
+    } catch (e) {
+      setImportResult({
+        kind: 'export',
+        message: e?.message || 'Export failed.',
+      })
+    }
+  }
+
+  const commitBulkImport = async (items) => {
+    const chunkSize = 400
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize)
+      const batch = writeBatch(db)
+      for (const { docId, payload } of chunk) {
+        batch.set(doc(db, 'products', docId), {
+          ...payload,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+      }
+      await batch.commit()
+    }
+  }
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setImportResult(null)
+    if (categories.length === 0) {
+      setImportResult({
+        kind: 'import',
+        message: 'Add at least one category before importing products.',
+      })
+      return
+    }
+    setImportBusy(true)
+    try {
+      const buf = await file.arrayBuffer()
+      const XLSX = await import('xlsx')
+      const api = XLSX.default ?? XLSX
+      const { rows } = readWorkbookFirstSheetJson(api, buf)
+      if (!rows.length) {
+        setImportResult({
+          kind: 'import',
+          message: 'No rows found in the first sheet. Use the exported template (Products sheet).',
+        })
+        return
+      }
+      const { items, errors } = buildBulkImportPlan(rows, categories, products)
+      if (items.length === 0) {
+        setImportResult({
+          kind: 'import',
+          message: errors.length
+            ? 'No valid rows to import.'
+            : 'No product rows found — add productCode and name for each new product.',
+          errors,
+        })
+        return
+      }
+      await commitBulkImport(items)
+      setImportResult({
+        kind: 'import',
+        created: items.length,
+        errors,
+      })
+    } catch (err) {
+      setImportResult({
+        kind: 'import',
+        message: err?.message || 'Import failed.',
+      })
+    } finally {
+      setImportBusy(false)
+    }
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
@@ -195,6 +288,72 @@ export default function AdminProductsPage() {
               Categories
             </Link>
           </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 mb-6">
+          <h2 className="text-sm font-semibold text-gray-900">Bulk import &amp; export</h2>
+          <p className="text-xs text-gray-600 mt-1 max-w-2xl">
+            Export downloads your current catalog as a template (Products + Categories sheets). Add new rows in Excel,
+            then import — product images can be added later on each product page.
+          </p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="inline-flex items-center justify-center border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-50"
+            >
+              Export to Excel
+            </button>
+            <button
+              type="button"
+              disabled={importBusy}
+              onClick={() => importInputRef.current?.click()}
+              className="inline-flex items-center justify-center bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-dark disabled:opacity-50"
+            >
+              {importBusy ? 'Importing…' : 'Import Excel / CSV'}
+            </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+              className="hidden"
+              onChange={handleImportFile}
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            Required columns: <span className="font-mono">productCode</span>, <span className="font-mono">name</span>,
+            and category via <span className="font-mono">categoryId</span>, <span className="font-mono">categorySlug</span>, or{' '}
+            <span className="font-mono">categoryName</span>. Booleans: yes/no. Leave slug empty to auto-generate from the
+            name.
+          </p>
+          {importResult?.kind === 'export' && importResult.message && (
+            <p className="mt-3 text-sm text-red-700">{importResult.message}</p>
+          )}
+          {importResult?.kind === 'import' && importResult.message && !importResult.created && (
+            <p className="mt-3 text-sm text-red-700">{importResult.message}</p>
+          )}
+          {importResult?.kind === 'import' && importResult.created != null && (
+            <div className="mt-3 rounded-lg border border-green-200 bg-green-50/80 px-3 py-2 text-sm text-green-900">
+              <p className="font-medium">Created {importResult.created} product{importResult.created !== 1 ? 's' : ''}.</p>
+              {importResult.errors?.length > 0 && (
+                <p className="mt-2 text-green-800">
+                  {importResult.errors.length} row{importResult.errors.length !== 1 ? 's' : ''} skipped (see below).
+                </p>
+              )}
+            </div>
+          )}
+          {importResult?.errors?.length > 0 && (
+            <div className="mt-3 max-h-40 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950">
+              <p className="font-semibold mb-1">Skipped rows</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                {importResult.errors.map((err, idx) => (
+                  <li key={idx}>
+                    Row {err.line}: {err.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="mb-4">

@@ -42,7 +42,7 @@ export default function AdminLayout() {
       {isAdmin && (
         <NavLink to="/admin/users" className={navLinkClass} onClick={closeMobile}>
           <Users className="w-5 h-5 shrink-0" aria-hidden />
-          Approvals
+          Users
         </NavLink>
       )}
     </>

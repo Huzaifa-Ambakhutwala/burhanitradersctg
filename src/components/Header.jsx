@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Menu, X, Search, Phone, Mail, ChevronDown, Shield, LogOut } from 'lucide-react'
+import { Menu, X, Search, ChevronDown, Shield, LogOut } from 'lucide-react'
 import siteData from '../data/site.json'
 import { useAuth } from '../context/AuthContext'
 import { useCategories } from '../context/CategoriesContext'
@@ -20,6 +20,10 @@ export default function Header() {
   const categoriesRef = useRef(null)
   const brandsRef = useRef(null)
   const closeTimers = useRef({ categories: null, brands: null })
+  /** Touch / no-hover devices: hover menus fight with click toggle (double-tap). Use click-only. */
+  const [clickOnlyDropdowns, setClickOnlyDropdowns] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(pointer: coarse), (hover: none)').matches
+  )
   const navigate = useNavigate()
   const { user, profile, loading, signOut, isStaff, isPending } = useAuth()
   const { categories } = useCategories()
@@ -46,6 +50,14 @@ export default function Header() {
       if (closeTimers.current.categories) clearTimeout(closeTimers.current.categories)
       if (closeTimers.current.brands) clearTimeout(closeTimers.current.brands)
     }
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse), (hover: none)')
+    const sync = () => setClickOnlyDropdowns(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
   }, [])
 
   const brandList = useMemo(() => {
@@ -99,33 +111,6 @@ export default function Header() {
 
   return (
     <>
-      <div className="bg-gray-800 text-white text-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-2 py-2.5 sm:py-2">
-          <div className="flex items-center gap-3 sm:gap-4 min-h-[44px] items-center">
-            <a
-              href={`tel:${siteData.phone.replace(/\s/g, '')}`}
-              className="flex items-center gap-1.5 hover:text-primary-light py-1.5 -my-1.5 px-1 -mx-1 rounded active:bg-white/10"
-            >
-              <Phone className="w-4 h-4 shrink-0" aria-hidden />
-              <span className="truncate max-w-[140px] xs:max-w-none">{siteData.phone}</span>
-            </a>
-            <a
-              href={`mailto:${siteData.email}`}
-              className="hidden sm:flex items-center gap-1.5 hover:text-primary-light py-1 -my-1 px-1 -mx-1 rounded active:bg-white/10"
-            >
-              <Mail className="w-4 h-4 shrink-0" aria-hidden />
-              <span>{siteData.email}</span>
-            </a>
-          </div>
-          <Link
-            to="/contact"
-            className="font-semibold text-primary-light hover:underline py-2.5 px-2 -my-1 rounded active:bg-white/10 min-h-[44px] inline-flex items-center"
-          >
-            INQUIRE NOW
-          </Link>
-        </div>
-      </div>
-
       <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between min-h-[56px] md:h-20 gap-3">
@@ -162,8 +147,12 @@ export default function Header() {
               <div
                 className="relative"
                 ref={categoriesRef}
-                onMouseEnter={() => openDropdown('categories')}
-                onMouseLeave={(e) => scheduleCloseDropdown('categories', e)}
+                {...(!clickOnlyDropdowns
+                  ? {
+                      onMouseEnter: () => openDropdown('categories'),
+                      onMouseLeave: (e) => scheduleCloseDropdown('categories', e),
+                    }
+                  : {})}
               >
                 <button
                   type="button"
@@ -203,8 +192,12 @@ export default function Header() {
               <div
                 className="relative"
                 ref={brandsRef}
-                onMouseEnter={() => openDropdown('brands')}
-                onMouseLeave={(e) => scheduleCloseDropdown('brands', e)}
+                {...(!clickOnlyDropdowns
+                  ? {
+                      onMouseEnter: () => openDropdown('brands'),
+                      onMouseLeave: (e) => scheduleCloseDropdown('brands', e),
+                    }
+                  : {})}
               >
                 <button
                   type="button"
@@ -278,7 +271,7 @@ export default function Header() {
               </form>
 
               {!loading && user && (isStaff || isPending) && (
-                <div className="relative hidden sm:block" ref={accountRef}>
+                <div className="relative" ref={accountRef}>
                   <button
                     type="button"
                     onClick={() => setAccountOpen((o) => !o)}
@@ -329,12 +322,6 @@ export default function Header() {
                     </div>
                   )}
                 </div>
-              )}
-
-              {!loading && (!user || (!isStaff && !isPending)) && (
-                <Link to="/admin/login" className="hidden sm:inline-flex text-sm text-gray-700 hover:text-primary font-medium px-2">
-                  Login
-                </Link>
               )}
 
               <Link
@@ -425,15 +412,6 @@ export default function Header() {
                   onClick={() => setMenuOpen(false)}
                 >
                   Access pending
-                </Link>
-              )}
-              {!user && (
-                <Link
-                  to="/admin/login"
-                  className="block py-3.5 font-medium text-primary border-b border-gray-100"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Staff login
                 </Link>
               )}
               {user && (
