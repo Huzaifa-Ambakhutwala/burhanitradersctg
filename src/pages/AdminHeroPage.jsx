@@ -125,11 +125,6 @@ export default function AdminHeroPage() {
         imagePath: String(s.imagePath || '').trim(),
         bg: String(s.bg || '').trim(),
       }))
-      if (slides.some((s) => !s.title)) {
-        setError('Each slide needs a title.')
-        setSaving(false)
-        return
-      }
       // keep a stable slug-ish href if someone pastes raw brand/category names
       for (const s of slides) {
         if (s.ctaHref.startsWith('/products?brand=')) {

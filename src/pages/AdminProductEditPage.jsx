@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -11,9 +12,10 @@ import {
   setDoc,
   where,
 } from 'firebase/firestore'
+import { deleteObject, ref } from 'firebase/storage'
 import { useAuth } from '../context/AuthContext'
 import { useCategories } from '../context/CategoriesContext'
-import { db } from '../lib/firebase'
+import { db, storage } from '../lib/firebase'
 import { slugify } from '../lib/slugify'
 import {
   deleteProductImage,
@@ -50,10 +52,15 @@ export default function AdminProductEditPage() {
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [photos, setPhotos] = useState([])
   const [files, setFiles] = useState([])
   const [uploading, setUploading] = useState(false)
+  const [replicateOpen, setReplicateOpen] = useState(false)
+  const [replicateSaving, setReplicateSaving] = useState(false)
+  const [replicateError, setReplicateError] = useState('')
+  const [replicateForm, setReplicateForm] = useState(null)
 
   useEffect(() => {
     if (isNew) {
@@ -131,6 +138,109 @@ export default function AdminProductEditPage() {
     const q = query(collection(db, 'products'), where('slug', '==', slug), limit(3))
     const snap = await getDocs(q)
     return snap.docs.some((d) => d.id !== excludeId)
+  }
+
+  const openReplicate = async () => {
+    if (!id || replicateSaving) return
+    const baseId = `${id}-copy`
+    let nextId = baseId
+    // pick a free id (avoid collisions by checking Firestore)
+    for (let i = 0; i < 20; i += 1) {
+      const snap = await getDoc(doc(db, 'products', nextId))
+      if (!snap.exists()) break
+      nextId = `${baseId}-${i + 2}`
+    }
+    setReplicateForm({
+      productCode: nextId,
+      name: form.name || '',
+      slug: slugify(form.slug || form.name),
+      categoryId: form.categoryId || categories[0]?.id || '',
+      brand: form.brand || '',
+      description: form.description || '',
+      price: form.price ?? '',
+      showPrice: !!form.showPrice,
+      featured: !!form.featured,
+      topSeller: !!form.topSeller,
+      isNew: !!form.isNew,
+    })
+    setReplicateError('')
+    setReplicateOpen(true)
+  }
+
+  const closeReplicate = () => {
+    if (replicateSaving) return
+    setReplicateOpen(false)
+    setReplicateForm(null)
+    setReplicateError('')
+  }
+
+  const saveReplicated = async () => {
+    if (!replicateForm || !user) return
+    setReplicateError('')
+    const docId = replicateForm.productCode.trim().replace(/\s+/g, '-')
+    if (!/^[a-zA-Z0-9_-]{1,80}$/.test(docId)) {
+      setReplicateError('Product code: use letters, numbers, dashes or underscores (max 80).')
+      return
+    }
+    if (docId.toLowerCase() === 'new') {
+      setReplicateError('Product code cannot be "new" (reserved).')
+      return
+    }
+    const exists = await getDoc(doc(db, 'products', docId))
+    if (exists.exists()) {
+      setReplicateError('Another product already uses this product code.')
+      return
+    }
+    const name = replicateForm.name.trim()
+    const categoryId = replicateForm.categoryId
+    const slug = slugify(replicateForm.slug || name)
+    if (!name || !categoryId || !slug) {
+      setReplicateError('Name, URL slug, and category are required.')
+      return
+    }
+    if (await slugTaken(slug, null)) {
+      setReplicateError('Another product already uses this URL slug.')
+      return
+    }
+    const priceNum = replicateForm.price === '' ? null : Number(replicateForm.price)
+    if (replicateForm.price !== '' && Number.isNaN(priceNum)) {
+      setReplicateError('Price must be a number.')
+      return
+    }
+
+    setReplicateSaving(true)
+    try {
+      const meta = applyCategoryMeta(categoryId)
+      await setDoc(
+        doc(db, 'products', docId),
+        {
+          name,
+          slug,
+          categoryId,
+          categoryName: meta.categoryName,
+          categorySlug: meta.categorySlug,
+          brand: (replicateForm.brand || '').trim(),
+          description: (replicateForm.description || '').trim(),
+          price: priceNum,
+          showPrice: !!replicateForm.showPrice,
+          featured: !!replicateForm.featured,
+          topSeller: !!replicateForm.topSeller,
+          new: !!replicateForm.isNew,
+          image: null,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          replicatedFrom: id,
+          replicatedBy: user.uid,
+        },
+        { merge: true }
+      )
+      closeReplicate()
+      navigate(`/admin/products/${docId}`)
+    } catch (e) {
+      setReplicateError(e?.message || 'Failed to create product')
+    } finally {
+      setReplicateSaving(false)
+    }
   }
 
   const handleSave = async (e) => {
@@ -261,6 +371,36 @@ export default function AdminProductEditPage() {
     }
   }
 
+  const handleDeleteProduct = async () => {
+    if (!id || deleting) return
+    const ok = window.confirm(
+      `Delete this product?\n\n${id} — ${form.name || ''}\n\nThis will also delete all uploaded images. This cannot be undone.`
+    )
+    if (!ok) return
+    if (!window.confirm('Are you absolutely sure?')) return
+    setError('')
+    setDeleting(true)
+    try {
+      const imagesSnap = await getDocs(collection(db, 'products', id, 'images'))
+      for (const img of imagesSnap.docs) {
+        const data = img.data()
+        if (data?.storagePath) {
+          try {
+            await deleteObject(ref(storage, data.storagePath))
+          } catch {
+            /* already removed */
+          }
+        }
+        await deleteDoc(doc(db, 'products', id, 'images', img.id))
+      }
+      await deleteDoc(doc(db, 'products', id))
+      navigate('/admin/products', { replace: true })
+    } catch (e) {
+      setError(e?.message || 'Delete failed')
+      setDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-6 text-sm text-gray-600">Loading product…</div>
@@ -270,10 +410,36 @@ export default function AdminProductEditPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="mb-6">
-        <Link to="/admin/products" className="text-sm text-primary hover:underline">
-          ← Back to products
-        </Link>
-        <h1 className="text-2xl font-bold text-gray-900 mt-2">{isNew ? 'Add product' : 'Edit product'}</h1>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Link to="/admin/products" className="text-sm text-primary hover:underline">
+              ← Back to products
+            </Link>
+            <h1 className="text-2xl font-bold text-gray-900 mt-2">{isNew ? 'Add product' : 'Edit product'}</h1>
+          </div>
+          {!isNew && id && (
+            <div className="flex flex-wrap gap-2 justify-end">
+              <button
+                type="button"
+                onClick={openReplicate}
+                className="inline-flex items-center justify-center border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:bg-gray-50 disabled:opacity-50"
+                disabled={replicateSaving || deleting}
+                title="Create a copy of this product"
+              >
+                Replicate
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteProduct}
+                className="inline-flex items-center justify-center bg-red-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-800 disabled:opacity-50"
+                disabled={deleting || replicateSaving}
+                title="Delete this product"
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          )}
+        </div>
         <p className="text-sm text-gray-600 mt-1">
           Details appear on the storefront. Upload images and set a primary photo for thumbnails.
         </p>
@@ -488,53 +654,251 @@ export default function AdminProductEditPage() {
       </form>
 
       {!isNew && id && (
-        <div className="mt-8 bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Product images</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              {photos.length === 0 ? (
-                <p className="text-sm text-gray-600">No images yet.</p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {photos.map((photo) => (
-                    <div key={photo.id} className="border border-gray-200 rounded-lg overflow-hidden flex flex-col">
-                      <div className="aspect-square bg-gray-100">
-                        <img src={photo.downloadURL} alt="" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="p-2 flex flex-col gap-1">
-                        {photo.isPrimary ? (
-                          <span className="text-[11px] font-medium text-emerald-700">Primary</span>
-                        ) : (
-                          <button type="button" className="text-[11px] text-primary text-left" onClick={() => handlePrimary(photo.id)}>
-                            Set primary
+        <>
+          <div className="mt-8 bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Product images</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                {photos.length === 0 ? (
+                  <p className="text-sm text-gray-600">No images yet.</p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {photos.map((photo) => (
+                      <div key={photo.id} className="border border-gray-200 rounded-lg overflow-hidden flex flex-col">
+                        <div className="aspect-square bg-gray-100">
+                          <img src={photo.downloadURL} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="p-2 flex flex-col gap-1">
+                          {photo.isPrimary ? (
+                            <span className="text-[11px] font-medium text-emerald-700">Primary</span>
+                          ) : (
+                            <button type="button" className="text-[11px] text-primary text-left" onClick={() => handlePrimary(photo.id)}>
+                              Set primary
+                            </button>
+                          )}
+                          <button type="button" className="text-[11px] text-red-600 text-left" onClick={() => handleDeletePhoto(photo)}>
+                            Delete
                           </button>
-                        )}
-                        <button type="button" className="text-[11px] text-red-600 text-left" onClick={() => handleDeletePhoto(photo)}>
-                          Delete
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Upload</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={(e) => setFiles(Array.from(e.target.files || []))}
+                  className="block w-full text-sm file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold"
+                />
+                {files.length > 0 && <p className="text-xs text-gray-600 mt-2">{files.length} file(s)</p>}
+                <button
+                  type="button"
+                  onClick={handleUpload}
+                  disabled={uploading || files.length === 0}
+                  className="mt-3 w-full py-2.5 rounded-lg bg-gray-900 text-white text-sm font-semibold disabled:opacity-50"
+                >
+                  {uploading ? 'Uploading…' : 'Upload images'}
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Upload</label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                onChange={(e) => setFiles(Array.from(e.target.files || []))}
-                className="block w-full text-sm file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold"
-              />
-              {files.length > 0 && <p className="text-xs text-gray-600 mt-2">{files.length} file(s)</p>}
+          </div>
+
+          <div className="mt-8 rounded-xl border border-red-200 bg-red-50/80 p-4 sm:p-6">
+            <h2 className="text-lg font-semibold text-red-900">Danger zone</h2>
+            <p className="text-sm text-red-800 mt-1">
+              Delete this product and all uploaded images. This cannot be undone.
+            </p>
+            <button
+              type="button"
+              onClick={handleDeleteProduct}
+              disabled={deleting}
+              className="mt-4 inline-flex items-center justify-center bg-red-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-800 disabled:opacity-50"
+            >
+              {deleting ? 'Deleting…' : 'Delete product'}
+            </button>
+          </div>
+        </>
+      )}
+
+      {replicateOpen && replicateForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Replicate product">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            onClick={closeReplicate}
+            aria-label="Close"
+          />
+          <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-gray-200">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-gray-900">Replicate product</h2>
+                  <p className="text-sm text-gray-600 mt-0.5 truncate">
+                    From <span className="font-mono">{id}</span> — {form.name}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeReplicate}
+                  className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50"
+                  disabled={replicateSaving}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-5">
+              {replicateError && <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-800 text-sm">{replicateError}</div>}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Product code (ID)</label>
+                  <input
+                    type="text"
+                    value={replicateForm.productCode}
+                    onChange={(e) => setReplicateForm((f) => ({ ...f, productCode: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
+                    placeholder="e.g. WP212007-copy"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select
+                    value={replicateForm.categoryId}
+                    onChange={(e) => setReplicateForm((f) => ({ ...f, categoryId: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="">Select category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={replicateForm.name}
+                  onChange={(e) => setReplicateForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">URL slug</label>
+                <input
+                  type="text"
+                  value={replicateForm.slug}
+                  onChange={(e) => setReplicateForm((f) => ({ ...f, slug: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
+                  placeholder={slugify(replicateForm.name) || 'product-url'}
+                />
+                <button
+                  type="button"
+                  className="mt-1 text-xs text-primary hover:underline"
+                  onClick={() => setReplicateForm((f) => ({ ...f, slug: slugify(f.name) }))}
+                >
+                  Generate from name
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
+                  <input
+                    type="text"
+                    value={replicateForm.brand}
+                    onChange={(e) => setReplicateForm((f) => ({ ...f, brand: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (optional)</label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={replicateForm.price}
+                    onChange={(e) => setReplicateForm((f) => ({ ...f, price: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    placeholder="e.g. 1500"
+                  />
+                  <label className="flex items-center gap-2 mt-2">
+                    <input
+                      type="checkbox"
+                      checked={replicateForm.showPrice}
+                      onChange={(e) => setReplicateForm((f) => ({ ...f, showPrice: e.target.checked }))}
+                    />
+                    <span className="text-sm text-gray-800">Show price on website</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={replicateForm.description}
+                  onChange={(e) => setReplicateForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={4}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="mt-4">
+                <span className="block text-sm font-medium text-gray-700 mb-2">Storefront tags</span>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={replicateForm.featured}
+                      onChange={(e) => setReplicateForm((f) => ({ ...f, featured: e.target.checked }))}
+                    />
+                    <span className="text-sm">Featured</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={replicateForm.topSeller}
+                      onChange={(e) => setReplicateForm((f) => ({ ...f, topSeller: e.target.checked }))}
+                    />
+                    <span className="text-sm">Top seller</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={replicateForm.isNew}
+                      onChange={(e) => setReplicateForm((f) => ({ ...f, isNew: e.target.checked }))}
+                    />
+                    <span className="text-sm">New</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-5 border-t border-gray-200 bg-gray-50 flex flex-wrap gap-3 justify-end">
               <button
                 type="button"
-                onClick={handleUpload}
-                disabled={uploading || files.length === 0}
-                className="mt-3 w-full py-2.5 rounded-lg bg-gray-900 text-white text-sm font-semibold disabled:opacity-50"
+                onClick={closeReplicate}
+                className="px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-800 hover:bg-gray-50"
+                disabled={replicateSaving}
               >
-                {uploading ? 'Uploading…' : 'Upload images'}
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveReplicated}
+                className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-dark disabled:opacity-50"
+                disabled={replicateSaving}
+              >
+                {replicateSaving ? 'Creating…' : 'Create product'}
               </button>
             </div>
           </div>

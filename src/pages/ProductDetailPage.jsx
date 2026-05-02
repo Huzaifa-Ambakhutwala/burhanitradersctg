@@ -1,16 +1,19 @@
 import { Link, useParams } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ProductCard from '../components/ProductCard'
 import { useProducts } from '../context/ProductsContext'
 import { useCategories } from '../context/CategoriesContext'
 import { categoryPublicPath } from '../lib/catalogPaths'
 import siteData from '../data/site.json'
+import { listProductImages } from '../lib/productImages'
 
 export default function ProductDetailPage() {
   const { slug } = useParams()
   const { products, loading } = useProducts()
   const { getCategoryById } = useCategories()
   const product = useMemo(() => products.find((p) => p.slug === slug), [products, slug])
+  const [gallery, setGallery] = useState([])
+  const [activeImageUrl, setActiveImageUrl] = useState(null)
 
   const category = useMemo(() => {
     if (!product?.categoryId) return null
@@ -35,10 +38,39 @@ export default function ProductDetailPage() {
     const categoryName = category?.name || product.categoryName || ''
     const brandName = (product.brand || '').trim()
     const lines = [`Inquiry for: ${product.name}`]
+    if (product.id) lines.push(`Product code: ${product.id}`)
     if (categoryName) lines.push(`Category: ${categoryName}`)
     if (brandName) lines.push(`Brand: ${brandName}`)
     return lines.join('\n')
   }, [product, category])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!product?.id) return
+    ;(async () => {
+      try {
+        const imgs = await listProductImages(product.id)
+        if (cancelled) return
+        const urls = imgs.map((i) => i.downloadURL).filter(Boolean)
+        // include legacy external image if present and not duplicated
+        if (product.image && !urls.includes(product.image)) urls.push(product.image)
+        setGallery(urls)
+        setActiveImageUrl(product.primaryImageUrl || urls[0] || product.image || null)
+      } catch {
+        // don't block page if gallery fails
+        const urls = []
+        if (product.primaryImageUrl) urls.push(product.primaryImageUrl)
+        if (product.image && !urls.includes(product.image)) urls.push(product.image)
+        if (!cancelled) {
+          setGallery(urls)
+          setActiveImageUrl(urls[0] || null)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [product?.id, product?.primaryImageUrl, product?.image])
 
   if (!loading && !product) {
     return (
@@ -58,7 +90,7 @@ export default function ProductDetailPage() {
   }
 
   const priceText = product.showPrice && product.price != null ? `৳ ${product.price}` : 'Inquire for price'
-  const mainImageUrl = product.primaryImageUrl || product.image || null
+  const mainImageUrl = activeImageUrl || product.primaryImageUrl || product.image || null
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
@@ -84,12 +116,32 @@ export default function ProductDetailPage() {
         </nav>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8">
-          <div className="aspect-square max-w-sm mx-auto w-full bg-gray-100 rounded-xl overflow-hidden">
-            {mainImageUrl ? (
-              <img src={mainImageUrl} alt={product.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-8xl font-bold text-gray-300">
-                {product.name.charAt(0)}
+          <div className="max-w-sm mx-auto w-full">
+            <div className="aspect-square w-full bg-gray-100 rounded-xl overflow-hidden">
+              {mainImageUrl ? (
+                <img src={mainImageUrl} alt={product.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-8xl font-bold text-gray-300">
+                  {product.name.charAt(0)}
+                </div>
+              )}
+            </div>
+            {gallery.length > 1 && (
+              <div className="mt-3 grid grid-cols-5 gap-2">
+                {gallery.slice(0, 10).map((url) => {
+                  const active = url === mainImageUrl
+                  return (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => setActiveImageUrl(url)}
+                      className={`aspect-square rounded-lg overflow-hidden border ${active ? 'border-primary' : 'border-gray-200'} bg-gray-100`}
+                      aria-label="View image"
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -98,6 +150,14 @@ export default function ProductDetailPage() {
               {product.categoryName}
             </Link>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1">{product.name}</h1>
+            {product.id && (
+              <div className="mt-2 inline-flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <span className="font-medium text-gray-700">Model / Code:</span>
+                <span className="font-mono text-gray-900 bg-gray-50 border border-gray-200 rounded-md px-2 py-1">
+                  {product.id}
+                </span>
+              </div>
+            )}
             <p className="text-gray-600 mt-2 text-sm sm:text-base">{product.brand}</p>
             <p className="mt-4 text-lg sm:text-xl font-semibold text-gray-900">{priceText}</p>
             <p className="mt-4 sm:mt-6 text-gray-600 text-sm sm:text-base">{product.description}</p>

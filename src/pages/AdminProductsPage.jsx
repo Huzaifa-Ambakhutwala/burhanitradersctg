@@ -6,28 +6,22 @@ import { useCategories } from '../context/CategoriesContext'
 import { groupProductsByCategory } from '../lib/groupProductsByCategory'
 import { categoryPublicPath } from '../lib/catalogPaths'
 import { deleteAllProducts } from '../lib/deleteAllProducts'
-import { slugify } from '../lib/slugify'
 import {
   buildBulkImportPlan,
   readWorkbookFirstSheetJson,
   writeProductsWorkbook,
 } from '../lib/productSpreadsheet'
 import { db } from '../lib/firebase'
-import { doc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
+import { doc, serverTimestamp, writeBatch } from 'firebase/firestore'
 
 export default function AdminProductsPage() {
   const navigate = useNavigate()
   const { isAdmin, user } = useAuth()
   const { products, loading, error, productCount } = useProducts()
-  const { categories, getCategoryById } = useCategories()
+  const { categories } = useCategories()
   const [query, setQuery] = useState('')
   const [purgeBusy, setPurgeBusy] = useState(false)
   const [purgeMsg, setPurgeMsg] = useState('')
-  const [replicateOpen, setReplicateOpen] = useState(false)
-  const [replicateSaving, setReplicateSaving] = useState(false)
-  const [replicateError, setReplicateError] = useState('')
-  const [replicateSource, setReplicateSource] = useState(null)
-  const [replicateForm, setReplicateForm] = useState(null)
   const importInputRef = useRef(null)
   const [importBusy, setImportBusy] = useState(false)
   const [importResult, setImportResult] = useState(null)
@@ -67,115 +61,6 @@ export default function AdminProductsPage() {
       setPurgeMsg(e.message || 'Failed to delete all')
     } finally {
       setPurgeBusy(false)
-    }
-  }
-
-  const openReplicate = (product) => {
-    const baseId = `${product.id}-copy`
-    const existing = new Set(products.map((p) => p.id))
-    let nextId = baseId
-    let i = 2
-    while (existing.has(nextId)) {
-      nextId = `${baseId}-${i}`
-      i += 1
-    }
-
-    const categoryId = product.categoryId || categories[0]?.id || ''
-    const category = categoryId ? getCategoryById(categoryId) : null
-    const name = (product.name || '').trim()
-    setReplicateSource(product)
-    setReplicateForm({
-      productCode: nextId,
-      name,
-      slug: slugify(name),
-      categoryId,
-      brand: product.brand || '',
-      description: product.description || '',
-      price: product.price != null ? String(product.price) : '',
-      showPrice: !!product.showPrice,
-      featured: !!product.featured,
-      topSeller: !!product.topSeller,
-      isNew: !!product.new,
-      categoryName: category?.name || product.categoryName || '',
-      categorySlug: category?.slug || product.categorySlug || '',
-    })
-    setReplicateError('')
-    setReplicateOpen(true)
-  }
-
-  const closeReplicate = () => {
-    if (replicateSaving) return
-    setReplicateOpen(false)
-    setReplicateSource(null)
-    setReplicateForm(null)
-    setReplicateError('')
-  }
-
-  const saveReplicated = async () => {
-    if (!replicateForm || !user) return
-    setReplicateError('')
-    const docId = replicateForm.productCode.trim().replace(/\s+/g, '-')
-    if (!/^[a-zA-Z0-9_-]{1,80}$/.test(docId)) {
-      setReplicateError('Product code: use letters, numbers, dashes or underscores (max 80).')
-      return
-    }
-    if (docId.toLowerCase() === 'new') {
-      setReplicateError('Product code cannot be \"new\" (reserved).')
-      return
-    }
-    const name = replicateForm.name.trim()
-    const categoryId = replicateForm.categoryId
-    const slug = slugify(replicateForm.slug || name)
-    if (!name || !categoryId || !slug) {
-      setReplicateError('Name, URL slug, and category are required.')
-      return
-    }
-    if (products.some((p) => p.id === docId)) {
-      setReplicateError('Another product already uses this product code.')
-      return
-    }
-    if (products.some((p) => p.slug === slug)) {
-      setReplicateError('Another product already uses this URL slug.')
-      return
-    }
-    const cat = getCategoryById(categoryId)
-    const priceNum = replicateForm.price === '' ? null : Number(replicateForm.price)
-    if (replicateForm.price !== '' && Number.isNaN(priceNum)) {
-      setReplicateError('Price must be a number.')
-      return
-    }
-
-    setReplicateSaving(true)
-    try {
-      await setDoc(
-        doc(db, 'products', docId),
-        {
-          name,
-          slug,
-          categoryId,
-          categoryName: cat?.name || '',
-          categorySlug: cat?.slug || '',
-          brand: (replicateForm.brand || '').trim(),
-          description: (replicateForm.description || '').trim(),
-          price: priceNum,
-          showPrice: !!replicateForm.showPrice,
-          featured: !!replicateForm.featured,
-          topSeller: !!replicateForm.topSeller,
-          new: !!replicateForm.isNew,
-          image: null,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          replicatedFrom: replicateSource?.id || null,
-          replicatedBy: user.uid,
-        },
-        { merge: true }
-      )
-      closeReplicate()
-      navigate(`/admin/products/${docId}`)
-    } catch (e) {
-      setReplicateError(e.message || 'Failed to create product')
-    } finally {
-      setReplicateSaving(false)
     }
   }
 
@@ -471,16 +356,6 @@ export default function AdminProductsPage() {
                             </div>
                           </div>
                         </button>
-                        <div className="flex flex-col gap-2 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => openReplicate(product)}
-                            className="px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 hover:border-primary/40 hover:text-primary min-h-[36px]"
-                            title="Replicate this product"
-                          >
-                            Replicate
-                          </button>
-                        </div>
                       </div>
                     )
                   })}
@@ -509,187 +384,6 @@ export default function AdminProductsPage() {
           </div>
         )}
       </div>
-
-      {replicateOpen && replicateForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Replicate product">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/40"
-            onClick={closeReplicate}
-            aria-label="Close"
-          />
-          <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-gray-200">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-gray-900">Replicate product</h2>
-                  <p className="text-sm text-gray-600 mt-0.5 truncate">
-                    From <span className="font-mono">{replicateSource?.id}</span> — {replicateSource?.name}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeReplicate}
-                  className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50"
-                  disabled={replicateSaving}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-
-            <div className="p-4 sm:p-5">
-              {replicateError && <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-800 text-sm">{replicateError}</div>}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Product code (ID)</label>
-                  <input
-                    type="text"
-                    value={replicateForm.productCode}
-                    onChange={(e) => setReplicateForm((f) => ({ ...f, productCode: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
-                    placeholder="e.g. WP212007-copy"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <select
-                    value={replicateForm.categoryId}
-                    onChange={(e) => setReplicateForm((f) => ({ ...f, categoryId: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  >
-                    <option value="">Select category</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input
-                  type="text"
-                  value={replicateForm.name}
-                  onChange={(e) => setReplicateForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">URL slug</label>
-                <input
-                  type="text"
-                  value={replicateForm.slug}
-                  onChange={(e) => setReplicateForm((f) => ({ ...f, slug: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
-                  placeholder={slugify(replicateForm.name) || 'product-url'}
-                />
-                <button
-                  type="button"
-                  className="mt-1 text-xs text-primary hover:underline"
-                  onClick={() => setReplicateForm((f) => ({ ...f, slug: slugify(f.name) }))}
-                >
-                  Generate from name
-                </button>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-                  <input
-                    type="text"
-                    value={replicateForm.brand}
-                    onChange={(e) => setReplicateForm((f) => ({ ...f, brand: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (optional)</label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={replicateForm.price}
-                    onChange={(e) => setReplicateForm((f) => ({ ...f, price: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    placeholder="e.g. 1500"
-                  />
-                  <label className="flex items-center gap-2 mt-2">
-                    <input
-                      type="checkbox"
-                      checked={replicateForm.showPrice}
-                      onChange={(e) => setReplicateForm((f) => ({ ...f, showPrice: e.target.checked }))}
-                    />
-                    <span className="text-sm text-gray-800">Show price on website</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={replicateForm.description}
-                  onChange={(e) => setReplicateForm((f) => ({ ...f, description: e.target.value }))}
-                  rows={4}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div className="mt-4">
-                <span className="block text-sm font-medium text-gray-700 mb-2">Storefront tags</span>
-                <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={replicateForm.featured}
-                      onChange={(e) => setReplicateForm((f) => ({ ...f, featured: e.target.checked }))}
-                    />
-                    <span className="text-sm">Featured</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={replicateForm.topSeller}
-                      onChange={(e) => setReplicateForm((f) => ({ ...f, topSeller: e.target.checked }))}
-                    />
-                    <span className="text-sm">Top seller</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={replicateForm.isNew}
-                      onChange={(e) => setReplicateForm((f) => ({ ...f, isNew: e.target.checked }))}
-                    />
-                    <span className="text-sm">New</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 sm:p-5 border-t border-gray-200 bg-gray-50 flex flex-wrap gap-3 justify-end">
-              <button
-                type="button"
-                onClick={closeReplicate}
-                className="px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-800 hover:bg-gray-50"
-                disabled={replicateSaving}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={saveReplicated}
-                className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-dark disabled:opacity-50"
-                disabled={replicateSaving}
-              >
-                {replicateSaving ? 'Creating…' : 'Create product'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

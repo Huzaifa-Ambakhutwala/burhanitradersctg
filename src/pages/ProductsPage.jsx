@@ -34,6 +34,7 @@ export default function ProductsPage() {
     return list.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
+        (p.id || '').toLowerCase().includes(q) ||
         p.categoryName?.toLowerCase().includes(q) ||
         p.brand?.toLowerCase().includes(q)
     )
