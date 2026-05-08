@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase'
@@ -66,24 +65,13 @@ export default function HeroCarousel() {
                   className="absolute inset-0 w-full h-full object-cover"
                   loading={i === 0 ? 'eager' : 'lazy'}
                 />
-                <div className="absolute inset-0 bg-black/35" aria-hidden />
               </>
             )}
 
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4 sm:px-6">
-              <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold max-w-2xl leading-tight">
-                {slide.title}
-              </h1>
-              <p className="mt-3 sm:mt-4 text-sm sm:text-base md:text-xl text-white/90 max-w-xl px-1">
+              <p className="text-sm sm:text-base md:text-xl text-white/90 max-w-xl px-1">
                 {slide.subtitle}
               </p>
-              <Link
-                to={slide.ctaHref || '/products'}
-                className="mt-4 sm:mt-6 inline-flex items-center gap-2 bg-white text-primary-dark px-5 py-3 sm:px-6 sm:py-3 rounded-lg font-semibold hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[48px] items-center"
-              >
-                {slide.ctaLabel || 'Shop Now'}
-                <ChevronRight className="w-5 h-5" />
-              </Link>
             </div>
           </div>
         ))}

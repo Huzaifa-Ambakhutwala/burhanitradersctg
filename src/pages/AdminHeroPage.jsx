@@ -242,7 +242,6 @@ export default function AdminHeroPage() {
                     {s.imageUrl ? (
                       <>
                         <img src={s.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/35" />
                       </>
                     ) : (
                       <div className="absolute inset-0" style={{ background: s.bg || defaultHero.slides[idx % defaultHero.slides.length].bg }} />
