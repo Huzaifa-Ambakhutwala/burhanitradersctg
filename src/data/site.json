@@ -1,6 +1,6 @@
 {
   "name": "Burhani Traders",
-  "tagline": "Tools for Professionals & DIYers",
+  "tagline": "Your Trusted Partner in Industrial & Engineering Supplies",
   "phone": "+880 1843-860751",
   "email": "Burhanitradersctg@gmail.com",
   "address": "Taj Machinery Market, 334 Jubilee Rd, Chittagong, Bangladesh",
@@ -12,16 +12,79 @@
     "linkedin": "https://linkedin.com"
   },
   "about": {
-    "intro": "Burhani Traders is a Chittagong-based enterprise established to bring proven industry expertise to the local and regional markets. We supply quality tools and hardware for professionals and DIYers.",
-    "intro2": "Built on principles of quality, reliability, and long-term partnerships, we are your trusted partner for power tools, measuring tools, and workshop equipment.",
-    "whyUs": [
-      "Years of experience in tools and hardware",
-      "Delivering across Chittagong and Bangladesh",
-      "Local and imported solutions",
-      "Trusted brands and competitive pricing",
-      "We work on trust and long-term association"
+    "subheadline": "Your Trusted Partner in Industrial & Engineering Supplies",
+    "sections": [
+      {
+        "title": "About Us",
+        "paragraphs": [
+          "Established in 1988, Burhani Traders began as a Trader and General Order Supplier with a strong foundation of trust, quality, and commitment. Over the years, we have successfully grown into a leading Importer, Stockist, and Industrial Order Supplier, proudly serving industries and institutions across Bangladesh."
+        ]
+      },
+      {
+        "title": "Our Reach & Expertise",
+        "paragraphs": [
+          "With more than three decades of excellence, Burhani Traders has become a trusted supplier and service provider to major sectors including:"
+        ],
+        "bullets": [
+          "Infrastructure Projects – Roads, Bridges, Railways, Airports, Stadiums, Commercial & Residential Buildings.",
+          "Shipyards – Including Western Marine Shipyard.",
+          "Oil, Petroleum & Gas Companies.",
+          "Defense – Navy, Army, Air Force, and Other Forces.",
+          "Power Plants – Raozan Power Plant, Nuclear Power Plant, and other energy projects."
+        ],
+        "paragraphsAfterBullets": [
+          "Our success is built on a deep understanding of industrial needs, strong sourcing capabilities, and a reputation for reliability and excellence."
+        ]
+      },
+      {
+        "title": "Our Core Values",
+        "paragraphs": ["At Burhani Traders, we believe in:"],
+        "bullets": [
+          "Excellence – delivering superior quality products and solutions",
+          "Honesty – building long-term relationships based on integrity",
+          "Perfection – striving for continuous improvement in every service we provide"
+        ],
+        "paragraphsAfterBullets": [
+          "These values define who we are and how we serve our clients — consistently and professionally."
+        ]
+      },
+      {
+        "title": "Our Product Range",
+        "paragraphs": [
+          "As one of the most comprehensive suppliers in Bangladesh, we offer a complete range of industrial tools and materials, including:"
+        ],
+        "bullets": [
+          "Hand Tools",
+          "Power Tools",
+          "Welding Equipment & Accessories",
+          "Safety Products & PPE",
+          "Measuring Instruments",
+          "Lifting Equipment & Accessories",
+          "Non-Sparking Tools",
+          "Specialty Chemicals & Industrial Lubricants",
+          "Cutting Tools & Industrial Blades",
+          "General Order Supplies"
+        ]
+      },
+      {
+        "title": "Why Choose Us",
+        "bullets": [
+          "Over 35 Years of Industry Experience",
+          "Global Sourcing Network – ensuring premium quality and competitive pricing",
+          "Professional & Dedicated Team",
+          "Single-Source Procurement Solutions",
+          "Trusted by Leading Industries & Government Sectors"
+        ]
+      },
+      {
+        "title": "Our Commitment",
+        "paragraphs": [
+          "Through our dedicated team, strong sourcing expertise, and uncompromising commitment to quality, Burhani Traders delivers a seamless and reliable buying experience — every single time.",
+          "With continuous growth and innovation, we remain committed to being your definitive supply partner for all industrial, construction, and engineering needs in Chittagong and across Bangladesh."
+        ]
+      }
     ],
-    "vision": "At Burhani Traders, our vision goes beyond trade. We see ourselves as long-term partners in progress—delivering tools that are trusted, precision-driven, and built to last."
+    "closingLine": "Excellence. Integrity. Innovation."
   },
   "ctaBanner": {
     "headline": "Powering Workshops, Contractors & Industries",
